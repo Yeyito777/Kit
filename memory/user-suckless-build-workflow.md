@@ -15,7 +15,7 @@ cd /home/yeyito/Config/<tool> && make && sudo make install
 No need for `make clean` - just `make && sudo make install`.
 
 # Applying Changes
-- **dwm**: Restart dwm (re-login or `kill -HUP $(pidof dwm)`)
+- **dwm**: The user restarts dwm themselves. NEVER send signals to dwm (kill -HUP, etc.) — this kills the entire X session and all running programs. After `make && sudo make install`, just tell the user the build is ready and they'll restart dwm on their own.
 - **st**: New terminals will use updated config; existing terminals unaffected
 - **dmenu**: Takes effect immediately on next invocation
 
