@@ -7,6 +7,7 @@ Files **outside** Agent that reference files inside `src/`. Update these when re
 |-----------|-------------------|----------|
 | `refresh_pointers.py` | `agent()` function | `~/.zshrc` line ~62 |
 | `hooks/recall-memories.sh` | UserPromptSubmit hook | `.claude/settings.local.json` |
+| `hooks/update-memories.sh` | Stop hook (async) | `.claude/settings.local.json` |
 | `hooks/cleanup-runtime.sh` | SessionEnd hook | `.claude/settings.local.json` |
 
 # Startup Flow

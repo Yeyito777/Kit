@@ -1,7 +1,9 @@
 Automatic memory recall system — how memories are surfaced via hooks, architecture, and debugging
 
 # Overview
-A `UserPromptSubmit` hook spawns a one-shot `claude -p --model opus` call to determine which memories are relevant to the user's prompt. Relevant memories are surfaced once per session via deduplication.
+Two hook-driven subsystems:
+1. **Recall** — A `UserPromptSubmit` hook spawns a one-shot `claude -p --model opus` call to determine which memories are relevant to the user's prompt. Relevant memories are surfaced once per session via deduplication.
+2. **Auto-update** — A `Stop` hook (async) spawns a subclaude after every response that reviews the conversation transcript and updates/creates memories if new persistent information was discussed.
 
 # Architecture
 
@@ -28,11 +30,24 @@ Flow per message:
 ## Resume hook (inline in `.claude/settings.local.json`)
 Wired to `SessionStart` with `"matcher": "resume"`. Truncates `runtime/recalled-<id>` so the dedup ledger resets on session resume. This allows all memories to be re-surfaced when switching between sessions, since the previous session's conversation context may no longer be present.
 
+## Memory update hook (`src/hooks/update-memories.sh`)
+Wired as `Stop` in `.claude/settings.local.json` with `async: true` (180s timeout). Runs in the background after every Claude response.
+
+Flow:
+1. Reads `transcript_path` from stdin JSON
+2. Extracts last 50 user/assistant messages from the JSONL transcript via python
+3. Generates current memory pointers
+4. Spawns `claude -p --model opus --max-turns 15 --allowedTools "Read,Edit,Write,Glob,Bash(python3 *)"` with a strict system prompt
+5. System prompt emphasizes: if nothing needs updating, exit immediately without touching files
+6. If the subclaude does edit/create memories, it runs `python3 src/refresh_pointers.py` to keep CLAUDE.md pointers in sync
+7. All output logged to `runtime/hook-<id>.log` with `[update]` prefix
+
 ## Cleanup hook (`src/hooks/cleanup-runtime.sh`)
 Wired to `SessionEnd`. Deletes `runtime/recalled-<id>` and `runtime/hook-<id>.log`.
 
 # Key files
-- `src/hooks/recall-memories.sh` — core hook (referenced by `.claude/settings.local.json`)
+- `src/hooks/recall-memories.sh` — recall hook (referenced by `.claude/settings.local.json`)
+- `src/hooks/update-memories.sh` — auto-update hook (referenced by `.claude/settings.local.json`)
 - `src/hooks/cleanup-runtime.sh` — cleanup hook (referenced by `.claude/settings.local.json`)
 - `src/hooks/test-recall.sh` — test harness for the recall system (run with `bash src/hooks/test-recall.sh`)
 - `.claude/settings.local.json` — hook wiring (project-local, gitignored by Claude Code)
