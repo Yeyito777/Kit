@@ -1,5 +1,3 @@
-- [ ] Add notifications to retrieving memories and memory updating agent updating memories.
-
 - [ ] When an agent finishes through the claude finish convo hook make sure it notifies the window in the wm such that it shows up with a notif on it (I can check on it) (This should be a global hook)
 
 - [ ] Delete the memory pointers section from CLAUDE.md entirely since we're now handling memory through the memory subagent
