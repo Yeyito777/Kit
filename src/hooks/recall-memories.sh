@@ -90,7 +90,7 @@ fi
 log "Found $(echo "$POINTERS" | wc -l) memory pointers"
 
 # --- Ask opus which memories are relevant ---
-QUERY="Given the following user prompt, which memories should be recalled? Select memories the user is explicitly asking about or that contain context likely to meaningfully affect how the task should be handled. Prefer fewer, higher-value recalls over broad coverage — when a memory is only loosely related, omit it. Output ONLY the filenames (one per line, e.g. memory/foo-bar.md). No explanations, no markdown, no numbering. If none apply, output nothing.
+QUERY="Given the following user prompt, which memories should be recalled? Select memories the user is explicitly asking about or that contain context likely to meaningfully affect how the task should be handled. Output ONLY the filenames (one per line, e.g. memory/foo-bar.md). No explanations, no markdown, no numbering. If none apply, output nothing.
 
 <user_prompt>
 ${PROMPT}
