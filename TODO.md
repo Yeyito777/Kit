@@ -1,3 +1,5 @@
+- [ ] Fix the fact that plans with clear context don't get their own session id... Check alternative ways of creating sessions maybe /new and /clear...
+
 - [ ] When an agent finishes through the claude finish convo hook make sure it notifies the window in the wm such that it shows up with a notif on it (I can check on it) (This should be a global hook)
 
 - [ ] Consider expanding the descriptions of memories from short 1-liners to multiliners describing what can be found if the file is read.

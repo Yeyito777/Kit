@@ -34,24 +34,26 @@ if [[ ! -f "$SESSION_FILE" ]]; then
 fi
 CURRENT_SESSION=$(cat "$SESSION_FILE")
 
-# --- Check if cleanup is due ---
-FORGETTING_INTERVAL=60  # sessions between cleanups (~3 days at 20/day)
+# --- Check if cleanup is due (fires at 0 mod 200) ---
+if (( CURRENT_SESSION % 200 != 0 )); then
+  log "SKIP: session $CURRENT_SESSION is not 0 mod 200"
+  exit 0
+fi
+
 LAST_FILE="${AGENT_DIR}/runtime/last-forgetting-session"
-if [[ -f "$LAST_FILE" ]]; then
-  LAST_SESSION=$(cat "$LAST_FILE")
-  SESSIONS_SINCE=$((CURRENT_SESSION - LAST_SESSION))
-  if [[ $SESSIONS_SINCE -lt $FORGETTING_INTERVAL ]]; then
-    log "SKIP: ${SESSIONS_SINCE}/${FORGETTING_INTERVAL} sessions since last cleanup"
-    exit 0
-  fi
-else
-  # First time — set baseline, don't run cleanup yet
+if [[ -f "$LAST_FILE" ]] && [[ "$(cat "$LAST_FILE")" == "$CURRENT_SESSION" ]]; then
+  log "SKIP: already ran for session $CURRENT_SESSION"
+  exit 0
+fi
+
+# First time — set baseline, don't run cleanup yet
+if [[ ! -f "$LAST_FILE" ]]; then
   echo "$CURRENT_SESSION" > "$LAST_FILE"
   log "Initialized last-forgetting-session at session $CURRENT_SESSION"
   exit 0
 fi
 
-log "--- Forgetting agent triggered (session $CURRENT_SESSION, last cleanup at $LAST_SESSION, $SESSIONS_SINCE sessions elapsed) ---"
+log "--- Forgetting agent triggered (session $CURRENT_SESSION) ---"
 
 # --- Mark cleanup ---
 echo "$CURRENT_SESSION" > "$LAST_FILE"
