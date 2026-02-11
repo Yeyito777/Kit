@@ -1,8 +1,7 @@
-User's qutebrowser fork with custom QtWebEngine — location, build workflow, submodule structure, and reference docs.
+User's qutebrowser fork with custom QtWebEngine — source location, build workflow, submodule structure, and reference docs. For runtime config/containers see memory/qutebrowser-runtime.md.
 
 # Location
 - Source: `/home/yeyito/Workspace/Qutebrowser/`
-- Config (user): `~/.config/qutebrowser/`
 - Project-level instructions: `/home/yeyito/Workspace/Qutebrowser/CLAUDE.md` (read this when working in qutebrowser)
 
 # What It Is
