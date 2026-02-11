@@ -63,7 +63,7 @@ run_test() {
 ${prompt}
 
 Available memories:
-${POINTERS}" | AGENT_HOOK_ID="" RECALL_HOOK_RUNNING=1 timeout 30 claude -p \
+${POINTERS}" | AGENT_HOOK_ID="" BLOCK_HOOK_AGENTS=1 timeout 30 claude -p \
     --model "$MODEL" \
     --max-turns 1 \
     --no-session-persistence \

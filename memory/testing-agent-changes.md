@@ -39,7 +39,7 @@ Key env vars:
 - `CLAUDE_PROJECT_DIR` — the clone path (hooks derive all paths from this)
 - `AGENT_HOOK_ID` — any test value; hooks use it for log filenames and session tracking
 - `AGENT_TERMINAL_PID` — set to an st PID for notification testing, empty to skip notifications
-- `RECALL_HOOK_RUNNING` — leave unset (setting it causes hooks to exit immediately)
+- `BLOCK_HOOK_AGENTS` — leave unset (setting it causes hooks to exit immediately)
 
 Create the hook's expected runtime files before invoking:
 ```bash

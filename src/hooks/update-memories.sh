@@ -6,7 +6,7 @@
 set -euo pipefail
 
 # --- Skip nested calls ---
-if [[ -n "${RECALL_HOOK_RUNNING:-}" ]]; then
+if [[ -n "${BLOCK_HOOK_AGENTS:-}" ]]; then
   cat > /dev/null
   exit 0
 fi
@@ -108,7 +108,7 @@ log "Spawning memory update subclaude..."
 STDERR_LOG=$(mktemp)
 RESULT=$(echo "Review this conversation transcript and determine if any memories need updating or creating. If nothing needs changing, just say so and stop.
 
-${CONVERSATION}" | AGENT_HOOK_ID="" RECALL_HOOK_RUNNING=1 timeout 120 claude -p \
+${CONVERSATION}" | AGENT_HOOK_ID="" BLOCK_HOOK_AGENTS=1 timeout 120 claude -p \
   --model opus \
   --max-turns 15 \
   --no-session-persistence \

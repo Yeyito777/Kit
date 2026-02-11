@@ -260,7 +260,7 @@ test_validation_toggle_off() {
 test_validation_recursion_guard() {
   echo "175" > "$TEST_DIR/runtime/session-counter"
   echo "75" > "$TEST_DIR/runtime/last-validation-session"
-  RECALL_HOOK_RUNNING=1 run_hook validation-memories.sh
+  BLOCK_HOOK_AGENTS=1 run_hook validation-memories.sh
   assert_log_not_contains "Validation hook fired" "recursion guard skips entirely"
   assert_claude_not_invoked "claude not spawned"
 }
@@ -371,7 +371,7 @@ test_forgetting_toggle_off() {
 test_forgetting_recursion_guard() {
   echo "400" > "$TEST_DIR/runtime/session-counter"
   echo "200" > "$TEST_DIR/runtime/last-forgetting-session"
-  RECALL_HOOK_RUNNING=1 run_hook forgetting-memories.sh
+  BLOCK_HOOK_AGENTS=1 run_hook forgetting-memories.sh
   assert_log_not_contains "Forgetting hook fired" "recursion guard skips entirely"
   assert_claude_not_invoked "claude not spawned"
 }

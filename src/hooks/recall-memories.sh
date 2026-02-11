@@ -7,7 +7,7 @@
 set -euo pipefail
 
 # --- Skip if this is a nested claude -p call from the hook itself ---
-if [[ -n "${RECALL_HOOK_RUNNING:-}" ]]; then
+if [[ -n "${BLOCK_HOOK_AGENTS:-}" ]]; then
   cat > /dev/null
   exit 0
 fi
@@ -102,7 +102,7 @@ ${POINTERS}"
 log "Calling opus..."
 log "Query being sent: ${QUERY:0:300}..."
 STDERR_LOG=$(mktemp)
-RESULT=$(echo "$QUERY" | (cd /tmp && AGENT_HOOK_ID="" RECALL_HOOK_RUNNING=1 timeout 25 claude -p \
+RESULT=$(echo "$QUERY" | (cd /tmp && AGENT_HOOK_ID="" BLOCK_HOOK_AGENTS=1 timeout 25 claude -p \
   --model opus \
   --max-turns 1 \
   --tools "" \

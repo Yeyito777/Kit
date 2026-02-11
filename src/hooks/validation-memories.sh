@@ -6,7 +6,7 @@
 set -euo pipefail
 
 # --- Skip nested calls ---
-if [[ -n "${RECALL_HOOK_RUNNING:-}" ]]; then
+if [[ -n "${BLOCK_HOOK_AGENTS:-}" ]]; then
   cat > /dev/null
   exit 0
 fi
@@ -137,7 +137,7 @@ VPROMPT
 
 STDERR_LOG=$(mktemp)
 RESULT=$(echo "$VALIDATION_PROMPT" | \
-  (cd /tmp && AGENT_HOOK_ID="" RECALL_HOOK_RUNNING=1 claude -p \
+  (cd /tmp && AGENT_HOOK_ID="" BLOCK_HOOK_AGENTS=1 claude -p \
     --model opus \
     --dangerously-skip-permissions \
     --no-session-persistence \
@@ -182,7 +182,7 @@ DPROMPT
 
 STDERR_LOG=$(mktemp)
 RESULT=$(echo "$DESCRIPTOR_PROMPT" | \
-  (cd /tmp && AGENT_HOOK_ID="" RECALL_HOOK_RUNNING=1 claude -p \
+  (cd /tmp && AGENT_HOOK_ID="" BLOCK_HOOK_AGENTS=1 claude -p \
     --model opus \
     --dangerously-skip-permissions \
     --no-session-persistence \

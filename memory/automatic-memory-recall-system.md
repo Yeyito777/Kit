@@ -52,7 +52,7 @@ Flow per message:
 3. Extracts prompt from stdin JSON via `jq`
 4. Generates memory pointers via inline python (walks `memory/*.md`, reads first line as description)
 5. Calls `claude -p --model opus --max-turns 1 --no-session-persistence` with system prompt constraining output to bare filenames only
-6. Inner `claude -p` runs with `AGENT_HOOK_ID=""` and `RECALL_HOOK_RUNNING=1` (see gotchas below)
+6. Inner `claude -p` runs with `AGENT_HOOK_ID=""` and `BLOCK_HOOK_AGENTS=1` (see gotchas below)
 7. Parses opus response: validates files exist on disk, checks against `recalled-<id>` for dedup
 8. For each recalled memory, updates its metadata: increments `frequency`, sets `last_accessed_session`
 9. New memories appended to tracking file, output as `Relevant memories: memory/foo.md memory/bar.md`
@@ -125,8 +125,8 @@ Set to `off` to disable. Checked on every hook invocation — no restart needed.
 - `memory-cold/` — archived memories + metadata (git-tracked)
 
 # Known gotchas
-1. **Hook recursion:** The inner `claude -p` runs in the same project and inherits `.claude/settings.local.json` hooks. Without `RECALL_HOOK_RUNNING=1`, the inner session's `UserPromptSubmit` fires the recall hook again — which either blocks it (exit 2 from missing AGENT_HOOK_ID) or recurses infinitely. The hook checks `RECALL_HOOK_RUNNING` at the very top and exits 0 immediately if set.
-2. **SessionEnd cascade:** Without `AGENT_HOOK_ID=""`, the inner `claude -p` finishing triggers `cleanup-runtime.sh`, which deletes the main session's tracking file mid-session.
+1. **Hook recursion:** The inner `claude -p` runs in the same project and inherits `.claude/settings.local.json` hooks. Without `BLOCK_HOOK_AGENTS=1`, the inner session's `UserPromptSubmit` fires the recall hook again — which either blocks it (exit 2 from missing AGENT_HOOK_ID) or recurses infinitely. Every hook checks `BLOCK_HOOK_AGENTS` at the very top and exits 0 immediately if set.
+2. **SessionEnd cascade:** Without `AGENT_HOOK_ID=""`, the inner `claude -p` finishing triggers `cleanup-runtime.sh`, which deletes the main session's tracking file mid-session. The cleanup and resume hooks don't check `BLOCK_HOOK_AGENTS` but are independently protected by the empty `AGENT_HOOK_ID`.
 
 # Debugging
 Watch the log in real time from another terminal:

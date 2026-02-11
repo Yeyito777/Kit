@@ -6,7 +6,7 @@
 set -euo pipefail
 
 # --- Skip nested calls ---
-if [[ -n "${RECALL_HOOK_RUNNING:-}" ]]; then
+if [[ -n "${BLOCK_HOOK_AGENTS:-}" ]]; then
   cat > /dev/null
   exit 0
 fi
@@ -143,7 +143,7 @@ PROMPT
 log "Spawning forgetting agent..."
 STDERR_LOG=$(mktemp)
 RESULT=$(echo "$USER_PROMPT" | \
-  (cd /tmp && AGENT_HOOK_ID="" RECALL_HOOK_RUNNING=1 timeout 900 claude -p \
+  (cd /tmp && AGENT_HOOK_ID="" BLOCK_HOOK_AGENTS=1 timeout 900 claude -p \
     --model opus \
     --max-turns 30 \
     --allowedTools "Read,Write,Glob,Bash(mv *),Bash(mkdir *),Bash(ls *),Bash(cd *),Bash(st-notify *),Bash(python3 *)" \
