@@ -128,7 +128,13 @@ done <<< "$RESULT"
 # --- Output context ---
 if [[ ${#NEW_MEMORIES[@]} -gt 0 ]]; then
   log "OUTPUT: Relevant memories: ${NEW_MEMORIES[*]}"
-  echo "Relevant memories: ${NEW_MEMORIES[*]}"
+  OUTPUT="Relevant memories:"
+  for mem in "${NEW_MEMORIES[@]}"; do
+    desc=$(head -1 "${AGENT_DIR}/${mem}" | sed 's/^[[:space:]]*//')
+    OUTPUT="${OUTPUT}
+- ${mem} — ${desc}"
+  done
+  echo "$OUTPUT"
 
   # Notify terminal via st-notify (one toast per memory)
   if [[ -n "${AGENT_TERMINAL_PID:-}" ]] && command -v st-notify &>/dev/null; then
