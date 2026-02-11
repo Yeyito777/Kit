@@ -4,7 +4,7 @@ Agent memory system architecture — recall/update/forgetting hook agents, UserP
 Three hook-driven subagents, all toggleable via `agent.conf`:
 1. **Recall agent** — A `UserPromptSubmit` hook spawns a one-shot `claude -p --model opus` call to determine which memories are relevant to the user's prompt. Relevant memories are surfaced once per session via deduplication. Toggle: `MEMORY_RECALL=on|off`.
 2. **Update agent** — A `Stop` hook (async) spawns a subclaude after every response that reviews the conversation transcript and updates/creates memories if new persistent information was discussed. Toggle: `MEMORY_UPDATE=on|off`.
-3. **Forgetting agent** — A `SessionStart` hook (async) spawns a subclaude every ~60 sessions to review the lowest-scoring memories and either archive them to `memory-cold/` or bump their appreciation. Toggle: `MEMORY_FORGETTING=on|off`.
+3. **Forgetting agent** — A `SessionStart` hook (async) spawns a subclaude every N sessions (configurable via `MEMORY_FORGETTING_INTERVAL`, default 200) to review the lowest-scoring memories and either archive them to `memory-cold/` or bump their appreciation. Toggle: `MEMORY_FORGETTING=on|off`.
 
 # Architecture
 
@@ -80,7 +80,7 @@ Wired as `SessionStart` in `.claude/settings.local.json` with `async: true` (300
 Flow:
 1. Checks `MEMORY_FORGETTING` toggle in `agent.conf`
 2. Reads `runtime/session-counter` for current session number
-3. Compares against `runtime/last-forgetting-session` — skips if fewer than 60 sessions have passed
+3. Reads `MEMORY_FORGETTING_INTERVAL` from `agent.conf` (default 200), skips if `session % interval != 0`; compares against `runtime/last-forgetting-session` lock to prevent duplicate runs
 4. On first-ever run, initializes `last-forgetting-session` and exits (no cleanup on first use)
 5. Sends pink st-notify toast: "Memory forgetting started" (45s, `#ff6b9d` border, `#1a0010` bg)
 6. Spawns `claude -p --model opus --max-turns 30` with tools: `Read,Write,Glob,Bash(mv/mkdir/ls/cd/st-notify/python3)`
@@ -106,8 +106,16 @@ Wired to `SessionEnd`. Deletes `runtime/recalled-<id>` and `runtime/hook-<id>.lo
 MEMORY_RECALL=on       # recall agent (UserPromptSubmit)
 MEMORY_UPDATE=on       # update agent (Stop, async)
 MEMORY_FORGETTING=on   # forgetting agent (SessionStart, async)
+MEMORY_VALIDATION=on   # validation agent (SessionStart, async)
 ```
 Set to `off` to disable. Checked on every hook invocation — no restart needed.
+
+Hook intervals (in sessions) are also configurable in `agent.conf`:
+```
+MEMORY_FORGETTING_INTERVAL=200   # forgetting fires at session % interval == 0
+MEMORY_VALIDATION_INTERVAL=100   # validation fires at session % interval == 75
+```
+If absent, hooks fall back to the defaults shown above.
 
 # Key files
 - `agent.conf` — subagent toggles

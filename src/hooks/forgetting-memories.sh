@@ -34,9 +34,13 @@ if [[ ! -f "$SESSION_FILE" ]]; then
 fi
 CURRENT_SESSION=$(cat "$SESSION_FILE")
 
-# --- Check if cleanup is due (fires at 0 mod 200) ---
-if (( CURRENT_SESSION % 200 != 0 )); then
-  log "SKIP: session $CURRENT_SESSION is not 0 mod 200"
+# --- Read interval from agent.conf (default: 200) ---
+FORGETTING_INTERVAL=$(grep '^MEMORY_FORGETTING_INTERVAL=' "$CONF" 2>/dev/null | cut -d= -f2 || true)
+FORGETTING_INTERVAL="${FORGETTING_INTERVAL:-200}"
+
+# --- Check if cleanup is due (fires at 0 mod interval) ---
+if (( CURRENT_SESSION % FORGETTING_INTERVAL != 0 )); then
+  log "SKIP: session $CURRENT_SESSION is not 0 mod $FORGETTING_INTERVAL"
   exit 0
 fi
 

@@ -70,6 +70,10 @@ MEMORY_RECALL=on
 MEMORY_UPDATE=off
 MEMORY_FORGETTING=on
 MEMORY_VALIDATION=on
+
+## Hook intervals (in sessions)
+MEMORY_FORGETTING_INTERVAL=200
+MEMORY_VALIDATION_INTERVAL=100
 EOF
 }
 
@@ -408,6 +412,60 @@ MOCK
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# CUSTOM INTERVAL TESTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+test_validation_custom_interval() {
+  # Set interval to 150 (must be > 75 since offset is 75) → fires at session % 150 == 75
+  sed -i 's/MEMORY_VALIDATION_INTERVAL=100/MEMORY_VALIDATION_INTERVAL=150/' "$TEST_DIR/agent.conf"
+  echo "225" > "$TEST_DIR/runtime/session-counter"
+  echo "75" > "$TEST_DIR/runtime/last-validation-session"
+  run_hook validation-memories.sh
+  assert_log_contains "Validation agent triggered (session 225)" "triggers with custom interval 150 at session 225"
+  assert_claude_invoked "claude was spawned"
+}
+
+test_validation_custom_interval_skip() {
+  sed -i 's/MEMORY_VALIDATION_INTERVAL=100/MEMORY_VALIDATION_INTERVAL=150/' "$TEST_DIR/agent.conf"
+  echo "100" > "$TEST_DIR/runtime/session-counter"
+  run_hook validation-memories.sh
+  assert_log_contains "SKIP: session 100 is not 75 mod 150" "skips non-matching session with custom interval"
+  assert_claude_not_invoked "claude not spawned"
+}
+
+test_forgetting_custom_interval() {
+  sed -i 's/MEMORY_FORGETTING_INTERVAL=200/MEMORY_FORGETTING_INTERVAL=50/' "$TEST_DIR/agent.conf"
+  echo "100" > "$TEST_DIR/runtime/session-counter"
+  echo "50" > "$TEST_DIR/runtime/last-forgetting-session"
+  run_hook forgetting-memories.sh
+  assert_log_contains "Forgetting agent triggered (session 100)" "triggers with custom interval 50 at session 100"
+  assert_claude_invoked "claude was spawned"
+}
+
+test_forgetting_custom_interval_skip() {
+  sed -i 's/MEMORY_FORGETTING_INTERVAL=200/MEMORY_FORGETTING_INTERVAL=50/' "$TEST_DIR/agent.conf"
+  echo "30" > "$TEST_DIR/runtime/session-counter"
+  run_hook forgetting-memories.sh
+  assert_log_contains "SKIP: session 30 is not 0 mod 50" "skips non-matching session with custom interval"
+  assert_claude_not_invoked "claude not spawned"
+}
+
+test_interval_defaults_when_missing() {
+  # Remove interval lines from agent.conf — hooks should fall back to defaults
+  sed -i '/MEMORY_FORGETTING_INTERVAL/d' "$TEST_DIR/agent.conf"
+  sed -i '/MEMORY_VALIDATION_INTERVAL/d' "$TEST_DIR/agent.conf"
+  echo "150" > "$TEST_DIR/runtime/session-counter"
+  run_hook forgetting-memories.sh
+  assert_log_contains "SKIP: session 150 is not 0 mod 200" "forgetting defaults to 200 when config missing"
+  reset_state
+  sed -i '/MEMORY_FORGETTING_INTERVAL/d' "$TEST_DIR/agent.conf"
+  sed -i '/MEMORY_VALIDATION_INTERVAL/d' "$TEST_DIR/agent.conf"
+  echo "80" > "$TEST_DIR/runtime/session-counter"
+  run_hook validation-memories.sh
+  assert_log_contains "SKIP: session 80 is not 75 mod 100" "validation defaults to 100 when config missing"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # CROSS-HOOK TESTS
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -473,6 +531,13 @@ run_test "forgetting: toggle off"                        test_forgetting_toggle_
 run_test "forgetting: recursion guard"                   test_forgetting_recursion_guard
 run_test "forgetting: no session counter"                test_forgetting_no_session_counter
 run_test "forgetting: lock written before spawn"         test_forgetting_lock_written_before_spawn
+
+# Custom interval tests
+run_test "validation: custom interval triggers"          test_validation_custom_interval
+run_test "validation: custom interval skips"             test_validation_custom_interval_skip
+run_test "forgetting: custom interval triggers"          test_forgetting_custom_interval
+run_test "forgetting: custom interval skips"             test_forgetting_custom_interval_skip
+run_test "intervals: defaults when config missing"       test_interval_defaults_when_missing
 
 # Cross-hook tests
 run_test "cross-hook: no schedule collision"             test_no_schedule_collision

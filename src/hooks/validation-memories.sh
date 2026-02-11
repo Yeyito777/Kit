@@ -34,9 +34,13 @@ if [[ ! -f "$SESSION_FILE" ]]; then
 fi
 CURRENT_SESSION=$(cat "$SESSION_FILE")
 
-# --- Check if validation is due (fires at 75 mod 100) ---
-if (( CURRENT_SESSION % 100 != 75 )); then
-  log "SKIP: session $CURRENT_SESSION is not 75 mod 100"
+# --- Read interval from agent.conf (default: 100) ---
+VALIDATION_INTERVAL=$(grep '^MEMORY_VALIDATION_INTERVAL=' "$CONF" 2>/dev/null | cut -d= -f2 || true)
+VALIDATION_INTERVAL="${VALIDATION_INTERVAL:-100}"
+
+# --- Check if validation is due (fires at 75 mod interval) ---
+if (( CURRENT_SESSION % VALIDATION_INTERVAL != 75 )); then
+  log "SKIP: session $CURRENT_SESSION is not 75 mod $VALIDATION_INTERVAL"
   exit 0
 fi
 
