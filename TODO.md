@@ -1,7 +1,3 @@
-- [ ] Setup the recall agent benchmark, where claude autogenerates it through a script that calls it feeding it 1-5 memories and it is asked to draft a prompt the either strongly/mostly/loosely relates to all of them. Then once we have that prompt it is saved with the metatdata of the memories it should be recalling. Generate a solid amount of these and then feed them to the recall system and see if it: overrecalls or underrecalls
-
-- [ ] When an agent finishes through the claude finish convo hook make sure it notifies the window in the wm such that it shows up with a notif on it (I can check on it) (This should be a global hook)
-
 - [ ] Consider expanding the descriptions of memories from short 1-liners to multiliners describing what can be found if the file is read.
 
 - [ ] Add a post tool use hook that whenever the agent cd's into a directory that has a reference/ it tells the agent about it and to consider reading any reference files that it might consider relevant to the user qurey. Also update your current reference files to follow memory notation, top line is plaintext sentence description of the reference, and instructions at the bottom on what to watch out for / what may need to be updated.

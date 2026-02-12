@@ -10,6 +10,14 @@ BENCH_DIR="$(cd "$(dirname "$0")" && pwd)"
 TESTS_DIR="${BENCH_DIR}/tests"
 RESULTS_DIR="${BENCH_DIR}/results"
 RECALL_SCRIPT="${AGENT_DIR}/src/recall.sh"
+PRESEARCH_SCRIPT="${AGENT_DIR}/src/presearch.py"
+CONF="${AGENT_DIR}/agent.conf"
+
+# --- Detect presearch config ---
+PRESEARCH=$(grep '^MEMORY_RECALL_PRESEARCH=' "$CONF" 2>/dev/null | cut -d= -f2 || true)
+PRESEARCH="${PRESEARCH:-off}"
+PRESEARCH_CONTENT=$(grep '^MEMORY_RECALL_PRESEARCH_CONTENT=' "$CONF" 2>/dev/null | cut -d= -f2 || true)
+PRESEARCH_CONTENT="${PRESEARCH_CONTENT:-off}"
 
 NAME=""
 while [[ $# -gt 0 ]]; do
@@ -88,6 +96,22 @@ ${line}"
     continue
   fi
 
+  # --- Run presearch (if enabled) ---
+  PRESEARCH_MEMS=()
+  PRESEARCH_TOTAL=0
+  if [[ "$PRESEARCH" == "on" ]]; then
+    PRESEARCH_OUTPUT=$(echo "$PROMPT_TEXT" | python3 "$PRESEARCH_SCRIPT" \
+      "${AGENT_DIR}/memory" "$PRESEARCH_CONTENT" 2>/dev/null) || true
+    while IFS= read -r line; do
+      [[ -z "$line" ]] && continue
+      # Extract filename from pointer line: "- memory/name.md — description" -> "memory/name.md"
+      local_name="${line#- }"
+      local_name="${local_name%% — *}"
+      [[ -n "$local_name" ]] && PRESEARCH_MEMS+=("$local_name")
+    done <<< "$PRESEARCH_OUTPUT"
+    PRESEARCH_TOTAL=$(find "${AGENT_DIR}/memory" -name '*.md' | wc -l)
+  fi
+
   # --- Run recall ---
   RECALLED=()
   RECALL_OUTPUT=$(echo "$PROMPT_TEXT" | "$RECALL_SCRIPT" 2>/dev/null) || {
@@ -151,11 +175,24 @@ ${line}"
     TOTAL_OVER_MEMS=$(( TOTAL_OVER_MEMS + EXTRA_COUNT ))
   fi
 
-  echo "  ${CATEGORY} (expected=${#EXPECTED[@]} recalled=${#RECALLED[@]} missing=${MISSING_COUNT} extra=${EXTRA_COUNT})"
+  if [[ "$PRESEARCH" == "on" ]]; then
+    echo "  ${CATEGORY} (presearch=${#PRESEARCH_MEMS[@]}/${PRESEARCH_TOTAL} expected=${#EXPECTED[@]} recalled=${#RECALLED[@]} missing=${MISSING_COUNT} extra=${EXTRA_COUNT})"
+  else
+    echo "  ${CATEGORY} (expected=${#EXPECTED[@]} recalled=${#RECALLED[@]} missing=${MISSING_COUNT} extra=${EXTRA_COUNT})"
+  fi
 
   # --- Build per-test detail ---
   DETAIL="
---- ${BENCH_NAME} ---
+--- ${BENCH_NAME} ---"
+  if [[ "$PRESEARCH" == "on" ]]; then
+    DETAIL="${DETAIL}
+Presearch (${#PRESEARCH_MEMS[@]}/${PRESEARCH_TOTAL}):"
+    for ps in "${PRESEARCH_MEMS[@]+"${PRESEARCH_MEMS[@]}"}"; do
+      DETAIL="${DETAIL}
+  ${ps}"
+    done
+  fi
+  DETAIL="${DETAIL}
 Expected (${#EXPECTED[@]}):"
   for exp in "${EXPECTED[@]+"${EXPECTED[@]}"}"; do
     DETAIL="${DETAIL}
@@ -213,6 +250,7 @@ fi
   echo "# Recall Benchmark Results"
   echo "# Date: $(date -Iseconds)"
   echo "# Tests: ${TOTAL}"
+  echo "# Presearch: ${PRESEARCH}"
   echo ""
   echo "[summary]"
   echo "total_tests=${TOTAL}"

@@ -40,6 +40,20 @@ PROMPTS="${PROMPTS:-v5-pass1/v5-pass2}"
 PROMPT1_NAME="${PROMPTS%%/*}"
 PROMPT2_NAME="${PROMPTS##*/}"
 
+PRESEARCH=$(grep '^MEMORY_RECALL_PRESEARCH=' "$CONF" 2>/dev/null | cut -d= -f2 || true)
+PRESEARCH="${PRESEARCH:-off}"
+
+PRESEARCH_CONTENT=$(grep '^MEMORY_RECALL_PRESEARCH_CONTENT=' "$CONF" 2>/dev/null | cut -d= -f2 || true)
+PRESEARCH_CONTENT="${PRESEARCH_CONTENT:-off}"
+
+# --- Optional logging (only if hook log file exists) ---
+RECALL_LOG=""
+if [[ -n "${AGENT_HOOK_ID:-}" ]]; then
+  _LOG="${AGENT_DIR}/runtime/hook-${AGENT_HOOK_ID}.log"
+  [[ -f "$_LOG" ]] && RECALL_LOG="$_LOG"
+fi
+rlog() { [[ -n "$RECALL_LOG" ]] && echo "[$(date +%H:%M:%S)] [recall] $*" >> "$RECALL_LOG" || true; }
+
 # --- Load prompt files ---
 PROMPT1_FILE="${AGENT_DIR}/prompts/${PROMPT1_NAME}.md"
 if [[ ! -f "$PROMPT1_FILE" ]]; then
@@ -58,7 +72,22 @@ if [[ "$SCHEME" == "double" ]]; then
 fi
 
 # --- Generate memory pointers (first line of each memory file) ---
-POINTERS=$(python3 -c "
+if [[ "$PRESEARCH" == "on" ]]; then
+  rlog "presearch: running (content=${PRESEARCH_CONTENT})"
+  PRESEARCH_STDERR=$(mktemp)
+  POINTERS=$(echo "$PROMPT" | python3 "${AGENT_DIR}/src/presearch.py" \
+    "$MEMORY_DIR" "$PRESEARCH_CONTENT" 2>"$PRESEARCH_STDERR") || {
+    rlog "presearch: failed (exit $?)"
+    echo "Error: presearch failed" >&2
+    rm -f "$PRESEARCH_STDERR"
+    exit 1
+  }
+  if [[ -s "$PRESEARCH_STDERR" ]]; then
+    rlog "presearch: $(cat "$PRESEARCH_STDERR")"
+  fi
+  rm -f "$PRESEARCH_STDERR"
+else
+  POINTERS=$(python3 -c "
 from pathlib import Path
 d = Path('${MEMORY_DIR}')
 if d.exists():
@@ -66,8 +95,10 @@ if d.exists():
         desc = f.read_text().split('\n')[0].strip()
         print(f'- memory/{f.name} — {desc}')
 " 2>/dev/null) || { echo "Error: pointer generation failed" >&2; exit 1; }
+fi
 
 if [[ -z "$POINTERS" ]]; then
+  rlog "No pointers generated, exiting"
   exit 0
 fi
 
