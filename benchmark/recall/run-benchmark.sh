@@ -183,7 +183,8 @@ ${line}"
 
   # --- Build per-test detail ---
   DETAIL="
---- ${BENCH_NAME} ---"
+--- ${BENCH_NAME} ---
+${PROMPT_TEXT}"
   if [[ "$PRESEARCH" == "on" ]]; then
     DETAIL="${DETAIL}
 Presearch (${#PRESEARCH_MEMS[@]}/${PRESEARCH_TOTAL}):"
