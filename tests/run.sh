@@ -438,6 +438,110 @@ MOCK
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# FORGETTING MIN-AGE TESTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+setup_min_age_memories() {
+  local session="$1"
+  echo "$session" > "$TEST_DIR/runtime/session-counter"
+  # Young memory (10 sessions old — below default 50 threshold)
+  echo "Young test memory" > "$TEST_DIR/memory/test-young.md"
+  cat > "$TEST_DIR/memory-metadata/test-young.json" << EOF
+{ "frequency": 0, "last_accessed_session": 0, "created_session": $((session - 10)), "appreciation": 0, "pinned": false }
+EOF
+  # Old memory (99 sessions old — above default 50 threshold)
+  echo "Old test memory" > "$TEST_DIR/memory/test-old.md"
+  cat > "$TEST_DIR/memory-metadata/test-old.json" << EOF
+{ "frequency": 0, "last_accessed_session": 0, "created_session": $((session - 99)), "appreciation": 0, "pinned": false }
+EOF
+}
+
+cleanup_min_age_memories() {
+  rm -f "$TEST_DIR/memory/test-young.md" "$TEST_DIR/memory-metadata/test-young.json"
+  rm -f "$TEST_DIR/memory/test-old.md" "$TEST_DIR/memory-metadata/test-old.json"
+  rm -f "$TEST_DIR/memory/test-age49.md" "$TEST_DIR/memory-metadata/test-age49.json"
+  rm -f "$TEST_DIR/memory/test-age50.md" "$TEST_DIR/memory-metadata/test-age50.json"
+  rm -f "$TEST_DIR/memory/test-age19.md" "$TEST_DIR/memory-metadata/test-age19.json"
+  rm -f "$TEST_DIR/memory/test-age30.md" "$TEST_DIR/memory-metadata/test-age30.json"
+}
+
+run_candidates() {
+  local count="${1:-100}"
+  CLAUDE_PROJECT_DIR="$TEST_DIR" AGENT_HOOK_ID="test01" AGENT_TERMINAL_PID="" \
+    bash "$TEST_DIR/src/hooks/forgetting-memories.sh" --output-only-candidates "$count" 2>/dev/null || true
+}
+
+test_forgetting_excludes_young_memories() {
+  setup_min_age_memories 100
+  local out
+  out=$(run_candidates)
+  if echo "$out" | grep -qF "test-young"; then
+    echo -e "  ${RED}FAIL${RESET}  young memory (age 10) excluded from candidates"
+    echo "        test-young should not appear in output"
+    echo "        output: $out"
+    FAIL=$((FAIL + 1))
+  else
+    echo -e "  ${GREEN}PASS${RESET}  young memory (age 10) excluded from candidates"
+    PASS=$((PASS + 1))
+  fi
+  assert_output_contains "$out" "test-old" "old memory (age 99) included in candidates"
+  cleanup_min_age_memories
+}
+
+test_forgetting_min_age_boundary() {
+  echo "100" > "$TEST_DIR/runtime/session-counter"
+  # Age = 49 (created_session=51) — should be excluded
+  echo "Boundary 49" > "$TEST_DIR/memory/test-age49.md"
+  cat > "$TEST_DIR/memory-metadata/test-age49.json" << EOF
+{ "frequency": 0, "last_accessed_session": 0, "created_session": 51, "appreciation": 0, "pinned": false }
+EOF
+  # Age = 50 (created_session=50) — should be included
+  echo "Boundary 50" > "$TEST_DIR/memory/test-age50.md"
+  cat > "$TEST_DIR/memory-metadata/test-age50.json" << EOF
+{ "frequency": 0, "last_accessed_session": 0, "created_session": 50, "appreciation": 0, "pinned": false }
+EOF
+  local out
+  out=$(run_candidates)
+  if echo "$out" | grep -qF "test-age49"; then
+    echo -e "  ${RED}FAIL${RESET}  age=49 excluded (below threshold)"
+    echo "        test-age49 should not appear in output"
+    FAIL=$((FAIL + 1))
+  else
+    echo -e "  ${GREEN}PASS${RESET}  age=49 excluded (below threshold)"
+    PASS=$((PASS + 1))
+  fi
+  assert_output_contains "$out" "test-age50" "age=50 included (at threshold)"
+  cleanup_min_age_memories
+}
+
+test_forgetting_min_age_configurable() {
+  echo "MEMORY_FORGETTING_MIN_AGE=20" >> "$TEST_DIR/agent.conf"
+  echo "100" > "$TEST_DIR/runtime/session-counter"
+  # Age = 19 (created_session=81) — should be excluded with min_age=20
+  echo "Age 19" > "$TEST_DIR/memory/test-age19.md"
+  cat > "$TEST_DIR/memory-metadata/test-age19.json" << EOF
+{ "frequency": 0, "last_accessed_session": 0, "created_session": 81, "appreciation": 0, "pinned": false }
+EOF
+  # Age = 30 (created_session=70) — should be included with min_age=20
+  echo "Age 30" > "$TEST_DIR/memory/test-age30.md"
+  cat > "$TEST_DIR/memory-metadata/test-age30.json" << EOF
+{ "frequency": 0, "last_accessed_session": 0, "created_session": 70, "appreciation": 0, "pinned": false }
+EOF
+  local out
+  out=$(run_candidates)
+  if echo "$out" | grep -qF "test-age19"; then
+    echo -e "  ${RED}FAIL${RESET}  age=19 excluded with custom min_age=20"
+    echo "        test-age19 should not appear in output"
+    FAIL=$((FAIL + 1))
+  else
+    echo -e "  ${GREEN}PASS${RESET}  age=19 excluded with custom min_age=20"
+    PASS=$((PASS + 1))
+  fi
+  assert_output_contains "$out" "test-age30" "age=30 included with custom min_age=20"
+  cleanup_min_age_memories
+}
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # MEMORY TOOL TESTS (forget-memory, appreciate-memory)
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -730,6 +834,11 @@ run_test "forgetting: toggle off"                        test_forgetting_toggle_
 run_test "forgetting: recursion guard"                   test_forgetting_recursion_guard
 run_test "forgetting: no session counter"                test_forgetting_no_session_counter
 run_test "forgetting: lock written before spawn"         test_forgetting_lock_written_before_spawn
+
+# Forgetting min-age tests
+run_test "forgetting: excludes young memories"           test_forgetting_excludes_young_memories
+run_test "forgetting: min-age boundary (49 vs 50)"       test_forgetting_min_age_boundary
+run_test "forgetting: min-age configurable via conf"     test_forgetting_min_age_configurable
 
 # Memory tool tests
 run_test "forget-memory: happy path"                     test_forget_memory_happy_path

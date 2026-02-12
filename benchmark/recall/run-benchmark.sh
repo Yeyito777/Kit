@@ -11,6 +11,14 @@ TESTS_DIR="${BENCH_DIR}/tests"
 RESULTS_DIR="${BENCH_DIR}/results"
 RECALL_SCRIPT="${AGENT_DIR}/src/recall.sh"
 
+NAME=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --name) NAME="$2"; shift 2 ;;
+    *) echo "Unknown arg: $1" >&2; exit 1 ;;
+  esac
+done
+
 if [[ ! -x "$RECALL_SCRIPT" ]]; then
   echo "Error: src/recall.sh not found or not executable" >&2
   exit 1
@@ -98,7 +106,7 @@ ${line}"
   EXTRA=()
 
   # Check which expected memories are missing from recalled
-  for exp in "${EXPECTED[@]}"; do
+  for exp in "${EXPECTED[@]+"${EXPECTED[@]}"}"; do
     FOUND=0
     for rec in "${RECALLED[@]+"${RECALLED[@]}"}"; do
       if [[ "$exp" == "$rec" ]]; then
@@ -114,7 +122,7 @@ ${line}"
   # Check which recalled memories are extra (not in expected)
   for rec in "${RECALLED[@]+"${RECALLED[@]}"}"; do
     FOUND=0
-    for exp in "${EXPECTED[@]}"; do
+    for exp in "${EXPECTED[@]+"${EXPECTED[@]}"}"; do
       if [[ "$rec" == "$exp" ]]; then
         FOUND=1
         break
@@ -149,7 +157,7 @@ ${line}"
   DETAIL="
 --- ${BENCH_NAME} ---
 Expected (${#EXPECTED[@]}):"
-  for exp in "${EXPECTED[@]}"; do
+  for exp in "${EXPECTED[@]+"${EXPECTED[@]}"}"; do
     DETAIL="${DETAIL}
   ${exp}"
   done
@@ -195,7 +203,11 @@ fi
 TOTAL_MISRECALLED=$(( TOTAL_OVER_MEMS + TOTAL_UNDER_MEMS ))
 
 # --- Write result file ---
-RESULT_FILE="${RESULTS_DIR}/$(date +%Y-%m-%d_%H-%M-%S).result"
+if [[ -n "$NAME" ]]; then
+  RESULT_FILE="${RESULTS_DIR}/${NAME}.result"
+else
+  RESULT_FILE="${RESULTS_DIR}/$(date +%Y-%m-%d_%H-%M-%S).result"
+fi
 
 {
   echo "# Recall Benchmark Results"

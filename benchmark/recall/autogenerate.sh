@@ -51,13 +51,89 @@ for (( i=1; i<=SAMPLES; i++ )); do
   if [[ -n "$AMOUNT" ]]; then
     COUNT="$AMOUNT"
   else
-    COUNT=$(( (RANDOM % 5) + 1 ))
+    COUNT=$(( RANDOM % 6 ))
   fi
 
   # Clamp to available memories
   if (( COUNT > TOTAL_MEMORIES )); then
     COUNT=$TOTAL_MEMORIES
   fi
+
+  # --- No-recall path (COUNT=0) ---
+  if (( COUNT == 0 )); then
+    echo "[${i}/${SAMPLES}] Generating no-recall prompt..."
+
+    # Pick a random category to force diversity
+    CATEGORIES=(
+      "a confirmation or approval (e.g. 'yes do it', 'ship it', 'LGTM')"
+      "a correction or rejection (e.g. 'no not that one', 'wrong file', 'that's not what I meant')"
+      "a follow-up question about the last response (e.g. 'wait what does that do?', 'can you explain that part?')"
+      "a reaction or feedback (e.g. 'nice that looks clean', 'hmm I don't love that', 'perfect')"
+      "a request to undo or retry (e.g. 'revert that', 'try again', 'go back')"
+      "a vague continuation (e.g. 'ok now do the next one', 'keep going', 'and the rest?')"
+    )
+    CATEGORY="${CATEGORIES[$(( RANDOM % ${#CATEGORIES[@]} ))]}"
+
+    NO_RECALL_QUERY="You are generating test data for a memory recall benchmark. Generate a short, realistic user message (1-2 sentences) that someone would type into a coding assistant mid-conversation where NO stored memories would be relevant.
+
+Generate ${CATEGORY}.
+
+Rules:
+- Sound natural — like a real person mid-conversation
+- Don't reference any specific tools, projects, configs, or technical topics that might match a stored memory
+- Keep it short and generic
+- Be creative — don't just paraphrase the category example
+- Output ONLY the user message, nothing else"
+
+    STDERR_LOG=$(mktemp)
+    GENERATED=$(echo "$NO_RECALL_QUERY" | (cd /tmp && AGENT_HOOK_ID="" BLOCK_HOOK_AGENTS=1 claude -p \
+      --model sonnet \
+      --max-turns 1 \
+      --tools "" \
+      --no-session-persistence \
+      --system-prompt "" \
+      2>"$STDERR_LOG")) || {
+      echo "Error: claude -p failed (exit $?)" >&2
+      cat "$STDERR_LOG" >&2
+      rm -f "$STDERR_LOG"
+      continue
+    }
+    rm -f "$STDERR_LOG"
+
+    if [[ -z "$GENERATED" || "$GENERATED" =~ ^[[:space:]]*$ ]]; then
+      echo "Warning: empty response from agent, skipping sample ${i}" >&2
+      continue
+    fi
+
+    # Determine filename
+    if [[ -n "$NAME" ]]; then
+      if (( SAMPLES > 1 )); then
+        BENCH_FILE="${TESTS_DIR}/${NAME}-$(printf '%03d' "$i").bench"
+      else
+        BENCH_FILE="${TESTS_DIR}/${NAME}.bench"
+      fi
+    else
+      BENCH_ID=$(openssl rand -hex 4)
+      BENCH_FILE="${TESTS_DIR}/${BENCH_ID}.bench"
+    fi
+
+    {
+      echo "# Recall Benchmark Test"
+      echo "# Generated: $(date -Iseconds)"
+      echo "# Picked: 0"
+      echo "# Expected: 0"
+      echo ""
+      echo "[expected]"
+      echo ""
+      echo "[prompt]"
+      echo "$GENERATED"
+    } > "$BENCH_FILE"
+
+    echo "  -> ${BENCH_FILE} (no-recall test)"
+    continue
+  fi
+
+  # --- Normal path (COUNT >= 1) ---
 
   # Pick random memories
   PICKED=()

@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # recall-memories.sh — UserPromptSubmit hook
-# Asks opus which memories are relevant to the user's prompt,
-# deduplicates against already-recalled memories for this session,
-# and outputs new ones as context.
+# Extracts prompt, delegates recall to src/recall.sh,
+# then handles dedup, metadata, notifications, and context output.
 
 set -euo pipefail
 
@@ -56,10 +55,6 @@ if ! command -v jq &>/dev/null; then
   log "SKIP: jq not found"
   exit 0
 fi
-if ! command -v claude &>/dev/null; then
-  log "SKIP: claude not found"
-  exit 0
-fi
 
 # --- Extract prompt ---
 PROMPT=$(echo "$INPUT" | jq -r '.prompt // empty')
@@ -69,61 +64,25 @@ if [[ -z "$PROMPT" || "$PROMPT" =~ ^[[:space:]]*$ ]]; then
 fi
 log "Prompt: ${PROMPT:0:100}..."
 
-# --- Generate memory pointers ---
-POINTERS=$(python3 -c "
-from pathlib import Path
-d = Path('${AGENT_DIR}/memory')
-if d.exists():
-    for f in sorted(d.glob('*.md')):
-        desc = f.read_text().split('\n')[0].strip()
-        print(f'- memory/{f.name} — {desc}')
-" 2>/dev/null) || { log "SKIP: python pointer generation failed"; exit 0; }
-if [[ -z "$POINTERS" ]]; then
-  log "SKIP: no memory pointers found"
+# --- Call standalone recall script ---
+log "Calling src/recall.sh..."
+RECALL_STDERR=$(mktemp)
+RESULT=$(echo "$PROMPT" | "${AGENT_DIR}/src/recall.sh" 2>"$RECALL_STDERR") || {
+  log "SKIP: src/recall.sh failed (exit $?)"
+  log "stderr: $(cat "$RECALL_STDERR")"
+  rm -f "$RECALL_STDERR"
   exit 0
+}
+if [[ -s "$RECALL_STDERR" ]]; then
+  log "recall.sh stderr: $(cat "$RECALL_STDERR")"
 fi
-log "Found $(echo "$POINTERS" | wc -l) memory pointers"
+rm -f "$RECALL_STDERR"
+log "recall.sh returned: ${RESULT:-<empty>}"
 
-# --- Ask opus which memories are relevant ---
-QUERY="Given the following user prompt, which memories should be recalled? Select memories the user is explicitly asking about or that contain context likely to meaningfully affect how the task should be handled. Output ONLY the filenames (one per line, e.g. memory/foo-bar.md). No explanations, no markdown, no numbering. If none apply, output nothing.
-
-<user_prompt>
-${PROMPT}
-</user_prompt>
-
-Available memories:
-${POINTERS}"
-
-log "Calling opus..."
-log "Query being sent: ${QUERY:0:300}..."
-STDERR_LOG=$(mktemp)
-RESULT=$(echo "$QUERY" | (cd /tmp && AGENT_HOOK_ID="" BLOCK_HOOK_AGENTS=1 timeout 25 claude -p \
-  --model opus \
-  --max-turns 1 \
-  --tools "" \
-  --no-session-persistence \
-  --system-prompt "" \
-  2>"$STDERR_LOG")) || { log "SKIP: claude -p failed or timed out (exit $?)"; log "stderr: $(cat "$STDERR_LOG")"; rm -f "$STDERR_LOG"; exit 0; }
-if [[ -s "$STDERR_LOG" ]]; then
-  log "claude -p stderr: $(cat "$STDERR_LOG")"
-fi
-rm -f "$STDERR_LOG"
-log "Opus returned: ${RESULT:-<empty>}"
-
-# --- Filter, validate, deduplicate ---
+# --- Deduplicate and update metadata ---
 NEW_MEMORIES=()
 while IFS= read -r line; do
-  line=$(echo "$line" | tr -d '[:space:]')
   [[ -z "$line" ]] && continue
-
-  # Accept both "memory/foo.md" and "foo.md"
-  [[ "$line" != memory/* ]] && line="memory/${line}"
-
-  # Must exist on disk
-  if [[ ! -f "${AGENT_DIR}/${line}" ]]; then
-    log "REJECT (not on disk): $line"
-    continue
-  fi
 
   # Skip if already recalled this session
   if grep -qxF "$line" "$RECALLED_FILE" 2>/dev/null; then

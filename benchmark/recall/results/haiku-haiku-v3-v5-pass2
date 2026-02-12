@@ -1,0 +1,230 @@
+# Recall Benchmark Results
+# Date: 2026-02-12T12:08:48-05:00
+# Tests: 24
+
+[summary]
+total_tests=24
+perfect=15 (62%)
+overrecall=4 (16%)
+underrecall=5 (20%)
+total_memories_overrecalled=8
+total_memories_underrecalled=5
+total_misrecalled=13
+
+[tests]
+
+--- bench-001.bench ---
+Expected (2):
+  memory/manual-testing-agent-hooks.md
+  memory/automatic-memory-recall-system.md
+Recalled (2):
+  memory/manual-testing-agent-hooks.md
+  memory/automatic-memory-recall-system.md
+Result: PERFECT
+
+--- bench-002.bench ---
+Expected (1):
+  memory/manual-testing-agent-hooks.md
+Recalled (1):
+  memory/manual-testing-agent-hooks.md
+Result: PERFECT
+
+--- bench-003.bench ---
+Expected (2):
+  memory/user-git-config-location.md
+  memory/qutebrowser.md
+Recalled (1):
+  memory/user-git-config-location.md
+Result: UNDERRECALL
+Missing (1):
+  memory/qutebrowser.md
+
+--- bench-004.bench ---
+Expected (1):
+  memory/user-git-config-location.md
+Recalled (1):
+  memory/user-git-config-location.md
+Result: PERFECT
+
+--- bench-005.bench ---
+Expected (2):
+  memory/disk-audit-cleanup-guide.md
+  memory/swap-file-configuration.md
+Recalled (2):
+  memory/disk-audit-cleanup-guide.md
+  memory/swap-file-configuration.md
+Result: PERFECT
+
+--- bench-006.bench ---
+Expected (3):
+  memory/regression-tests-agent.md
+  memory/manual-testing-agent-hooks.md
+  memory/recall-benchmark.md
+Recalled (5):
+  memory/automatic-memory-recall-system.md
+  memory/manual-testing-agent-hooks.md
+  memory/modifying-agent-src.md
+  memory/regression-tests-agent.md
+  memory/recall-benchmark.md
+Result: OVERRECALL
+Extra (2):
+  memory/automatic-memory-recall-system.md
+  memory/modifying-agent-src.md
+
+--- bench-007.bench ---
+Expected (1):
+  memory/automatic-memory-recall-system.md
+Recalled (1):
+  memory/automatic-memory-recall-system.md
+Result: PERFECT
+
+--- bench-008.bench ---
+Expected (1):
+  memory/user-git-config-location.md
+Recalled (1):
+  memory/user-git-config-location.md
+Result: PERFECT
+
+--- bench-009.bench ---
+Expected (1):
+  memory/suckless-st.md
+Recalled (1):
+  memory/claude-code-binary-inspection.md
+Result: UNDERRECALL
+Missing (1):
+  memory/suckless-st.md
+Extra (1):
+  memory/claude-code-binary-inspection.md
+
+--- bench-010.bench ---
+Expected (3):
+  memory/dmenu-usage-and-scripting.md
+  memory/suckless-st.md
+  memory/suckless-dwm.md
+Recalled (3):
+  memory/suckless-st.md
+  memory/suckless-dwm.md
+  memory/dmenu-usage-and-scripting.md
+Result: PERFECT
+
+--- bench-011.bench ---
+Expected (1):
+  memory/claude-code-binary-inspection.md
+Recalled (1):
+  memory/claude-code-binary-inspection.md
+Result: PERFECT
+
+--- bench-012.bench ---
+Expected (2):
+  memory/user-terminal-color-scheme.md
+  memory/user-keyboard-configuration.md
+Recalled (3):
+  memory/suckless-st.md
+  memory/user-keyboard-configuration.md
+  memory/user-terminal-color-scheme.md
+Result: OVERRECALL
+Extra (1):
+  memory/suckless-st.md
+
+--- bench-013.bench ---
+Expected (2):
+  memory/modifying-agent-src.md
+  memory/supcord-project.md
+Recalled (1):
+  memory/modifying-agent-src.md
+Result: UNDERRECALL
+Missing (1):
+  memory/supcord-project.md
+
+--- bench-014.bench ---
+Expected (1):
+  memory/recall-benchmark.md
+Recalled (1):
+  memory/recall-benchmark.md
+Result: PERFECT
+
+--- bench-015.bench ---
+Expected (2):
+  memory/suckless-st.md
+  memory/suckless-dwm.md
+Recalled (2):
+  memory/suckless-st.md
+  memory/suckless-dwm.md
+Result: PERFECT
+
+--- bench-016.bench ---
+Expected (2):
+  memory/suckless-dmenu.md
+  memory/automatic-memory-recall-system.md
+Recalled (1):
+  memory/suckless-dmenu.md
+Result: UNDERRECALL
+Missing (1):
+  memory/automatic-memory-recall-system.md
+
+--- bench-017.bench ---
+Expected (1):
+  memory/about-user-todo-organization.md
+Recalled (1):
+  memory/about-user-todo-organization.md
+Result: PERFECT
+
+--- bench-018.bench ---
+Expected (3):
+  memory/suckless-st.md
+  memory/st-notify-system.md
+  memory/user-keyboard-configuration.md
+Recalled (2):
+  memory/st-notify-system.md
+  memory/user-keyboard-configuration.md
+Result: UNDERRECALL
+Missing (1):
+  memory/suckless-st.md
+
+--- bench-019.bench ---
+Expected (3):
+  memory/swap-file-configuration.md
+  memory/disk-audit-cleanup-guide.md
+  memory/supcord-project.md
+Recalled (3):
+  memory/swap-file-configuration.md
+  memory/disk-audit-cleanup-guide.md
+  memory/supcord-project.md
+Result: PERFECT
+
+--- bench-020.bench ---
+Expected (1):
+  memory/qutebrowser.md
+Recalled (1):
+  memory/qutebrowser.md
+Result: PERFECT
+
+--- norecall-001.bench ---
+Expected (0):
+Recalled (3):
+  memory/modifying-agent-src.md
+  memory/regression-tests-agent.md
+  memory/manual-testing-agent-hooks.md
+Result: OVERRECALL
+Extra (3):
+  memory/modifying-agent-src.md
+  memory/regression-tests-agent.md
+  memory/manual-testing-agent-hooks.md
+
+--- norecall-002.bench ---
+Expected (0):
+Recalled (0):
+Result: PERFECT
+
+--- norecall-003.bench ---
+Expected (0):
+Recalled (1):
+  memory/regression-tests-agent.md
+Result: OVERRECALL
+Extra (1):
+  memory/regression-tests-agent.md
+
+--- norecall-004.bench ---
+Expected (0):
+Recalled (0):
+Result: PERFECT

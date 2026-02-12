@@ -43,21 +43,46 @@ Each `memory/*.md` file has a corresponding `memory-metadata/{name}.json`:
 
 `src/reconcile_metadata.py` keeps metadata in sync: creates defaults for new memories, deletes orphans for removed memories. Runs at every session start via `start.sh`.
 
+## Standalone recall script (`src/recall.sh`)
+The source of truth for recall logic. Takes a user prompt on stdin, outputs recalled `memory/*.md` filenames to stdout (one per line). Used by the hook and by `benchmark/recall/run-benchmark.sh`.
+
+Supports two schemes configured via `agent.conf`:
+
+**Single scheme** (`MEMORY_RECALL_SCHEME=single`):
+1. Generates memory pointers via inline python (walks `memory/*.md`, reads first line as description)
+2. Loads prompt template from `prompts/<name>.md` (first name in `MEMORY_RECALL_PROMPTS`)
+3. Calls `claude -p --model <MODEL1> --max-turns 1 --no-session-persistence` with pointers + user prompt
+4. Parses response: validates files exist on disk, outputs valid filenames
+
+**Double scheme** (`MEMORY_RECALL_SCHEME=double`, default):
+1. **Pass 1 (broad candidate selection):** Same as single — generates pointers, loads first prompt template, calls `MODEL1`. Biased toward overrecall.
+2. **Pass 2 (re-rank with full content):** Reads the full content of each pass 1 candidate, loads second prompt template, calls `MODEL2`. Filters to only memories whose specific content is actually needed. Can return nothing if no candidates are truly relevant.
+3. Pass 2 results are constrained to pass 1 candidates (can only remove, not add). On pass 2 failure, falls back to pass 1 results.
+
+All inner `claude -p` calls run with `AGENT_HOOK_ID=""` and `BLOCK_HOOK_AGENTS=1` (see gotchas below).
+
+Prompt templates live in `prompts/` as `.md` files. The script appends `<user_prompt>` tags and `Available memories:` (pass 1) or `Candidate memories:` with full content (pass 2).
+
+Current best config (v5, ~75-79% perfect on benchmark):
+```
+MEMORY_RECALL_SCHEME=double
+MEMORY_RECALL_MODELS=opus/opus
+MEMORY_RECALL_PROMPTS=v5-pass1/v5-pass2
+```
+
 ## Recall hook (`src/hooks/recall-memories.sh`)
-Wired as `UserPromptSubmit` in `.claude/settings.local.json` (60s timeout, "Recalling memories..." spinner).
+Wired as `UserPromptSubmit` in `.claude/settings.local.json` (60s timeout, "Recalling memories..." spinner). Delegates core recall to `src/recall.sh`.
 
 Flow per message:
 1. On first message of session: increments session counter, writes hook ID to `runtime/session-last-increment`
 2. Validates `AGENT_HOOK_ID` and tracking file exist (exit 2 if not — blocks prompt, notifies user)
 3. Extracts prompt from stdin JSON via `jq`
-4. Generates memory pointers via inline python (walks `memory/*.md`, reads first line as description)
-5. Calls `claude -p --model opus --max-turns 1 --no-session-persistence` with system prompt constraining output to bare filenames only
-6. Inner `claude -p` runs with `AGENT_HOOK_ID=""` and `BLOCK_HOOK_AGENTS=1` (see gotchas below)
-7. Parses opus response: validates files exist on disk, checks against `recalled-<id>` for dedup
-8. For each recalled memory, updates its metadata: increments `frequency`, sets `last_accessed_session`
-9. New memories appended to tracking file, output as `Relevant memories: memory/foo.md memory/bar.md`
-10. If memories were recalled and `AGENT_TERMINAL_PID` is set, fires one `st-notify` toast per memory (teal border on dark green bg, backgrounded)
-11. stdout with exit 0 = context injected into the main Claude session
+4. Pipes prompt into `src/recall.sh`, captures output
+5. Deduplicates against `recalled-<id>` ledger
+6. For each recalled memory, updates its metadata: increments `frequency`, sets `last_accessed_session`
+7. New memories appended to tracking file, output as `Relevant memories: memory/foo.md memory/bar.md`
+8. If memories were recalled and `AGENT_TERMINAL_PID` is set, fires one `st-notify` toast per memory (teal border on dark green bg, backgrounded)
+9. stdout with exit 0 = context injected into the main Claude session
 
 ## Resume hook (inline in `.claude/settings.local.json`)
 Wired to `SessionStart` with `"matcher": "resume"`. Truncates `runtime/recalled-<id>` so the dedup ledger resets on session resume. This allows all memories to be re-surfaced when switching between sessions, since the previous session's conversation context may no longer be present.
@@ -110,6 +135,14 @@ MEMORY_VALIDATION=on   # validation agent (SessionStart, async)
 ```
 Set to `off` to disable. Checked on every hook invocation — no restart needed.
 
+Recall agent settings:
+```
+MEMORY_RECALL_SCHEME=double              # single or double (two-pass)
+MEMORY_RECALL_MODELS=opus/opus           # model1/model2 (single uses model1 only)
+MEMORY_RECALL_PROMPTS=v5-pass1/v5-pass2  # prompt names from prompts/ dir (single uses first only)
+```
+Prompt templates are stored in `prompts/` as `.md` files (e.g. `prompts/v5-pass1.md`). The name in the config omits the `.md` extension.
+
 Hook schedules are also configurable in `agent.conf` as `offset/cycle` (fires when `session % cycle == offset`):
 ```
 MEMORY_FORGETTING_SCHEDULE=0/200    # fires at session % 200 == 0
@@ -118,8 +151,10 @@ MEMORY_VALIDATION_SCHEDULE=75/100   # fires at session % 100 == 75
 If absent, hooks fall back to the defaults shown above.
 
 # Key files
-- `agent.conf` — subagent toggles
-- `src/hooks/recall-memories.sh` — recall agent hook
+- `agent.conf` — subagent toggles and recall config
+- `src/recall.sh` — standalone recall logic (source of truth, config-driven)
+- `prompts/` — recall prompt templates (`.md` files referenced by `MEMORY_RECALL_PROMPTS`)
+- `src/hooks/recall-memories.sh` — recall agent hook (calls `src/recall.sh`)
 - `src/hooks/update-memories.sh` — update agent hook
 - `src/hooks/forgetting-memories.sh` — forgetting agent hook
 - `src/hooks/cleanup-runtime.sh` — cleanup hook

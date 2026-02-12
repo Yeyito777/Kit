@@ -105,6 +105,9 @@ DEFAULT_CANDIDATES=$(grep '^MEMORY_FORGETTING_CANDIDATES=' "$CONF" 2>/dev/null |
 DEFAULT_CANDIDATES="${DEFAULT_CANDIDATES:-3}"
 FORGETTING_CANDIDATES="${FORCE_COUNT:-$DEFAULT_CANDIDATES}"
 
+FORGETTING_MIN_AGE=$(grep '^MEMORY_FORGETTING_MIN_AGE=' "$CONF" 2>/dev/null | cut -d= -f2 || true)
+FORGETTING_MIN_AGE="${FORGETTING_MIN_AGE:-50}"
+
 log "Scoring memories..."
 CANDIDATES=$(python3 -c "
 import json, math
@@ -116,6 +119,9 @@ scores = []
 for f in sorted(metadata_dir.glob('*.json')):
     d = json.loads(f.read_text())
     if d.get('pinned', False):
+        continue
+    age = current_session - d.get('created_session', 0)
+    if age < ${FORGETTING_MIN_AGE}:
         continue
     sessions_since = current_session - d.get('last_accessed_session', 0)
     freq = d.get('frequency', 0)

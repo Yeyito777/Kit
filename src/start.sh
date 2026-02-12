@@ -47,7 +47,7 @@ python3 src/reconcile_metadata.py
 SESSION_FILE="${AGENT_DIR}/runtime/session-counter"
 NEXT_SESSION=$(( $(cat "$SESSION_FILE" 2>/dev/null || echo "-1") + 1 ))
 if [[ -n "$AGENT_TERMINAL_PID" ]] && command -v st-notify &>/dev/null; then
-  st-notify -t 10000 -b "#ff6b9d" -bg "#1a0010" -fg "#f1faee" \
+  st-notify -t 10000 -ts 18 -b "#ff6b9d" -bg "#1a0010" -fg "#f1faee" \
     "$AGENT_TERMINAL_PID" "Session $NEXT_SESSION" &>/dev/null &
 fi
 

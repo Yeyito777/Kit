@@ -1,4 +1,4 @@
-Agent src/ and scripts/ modification guide — renaming moving deleting files in src/ and scripts/, external references table (start.sh zshrc alias, hook scripts in .claude/settings.local.json, reconcile_metadata.py), startup boot flow (agent alias → start.sh → reconcile → claude launch), hooks wiring (recall-memories update-memories forgetting-memories cleanup-runtime validation-memories), scripts/ runner utilities, checklist for keeping paths in sync across Agent codebase
+Agent src/ and scripts/ modification guide — adding new hooks, registering new scripts, renaming moving deleting files in src/ and scripts/, external references table (start.sh zshrc alias, hook scripts in .claude/settings.local.json, reconcile_metadata.py), startup boot flow (agent alias → start.sh → reconcile → claude launch), hooks wiring (recall-memories update-memories forgetting-memories cleanup-runtime validation-memories), scripts/ runner utilities, checklist for keeping paths and references in sync across Agent codebase
 
 # External References
 Files **outside** Agent that reference files inside `src/`. Update these when renaming/moving/deleting src/ files.
@@ -6,6 +6,7 @@ Files **outside** Agent that reference files inside `src/`. Update these when re
 | src/ file | External reference | Location |
 |-----------|-------------------|----------|
 | `start.sh` | `alias agent=...` | `~/.zshrc` |
+| `recall.sh` | Recall hook + benchmark | `hooks/recall-memories.sh`, `benchmark/recall/run-benchmark.sh` |
 | `hooks/recall-memories.sh` | UserPromptSubmit hook | `.claude/settings.local.json` |
 | `hooks/update-memories.sh` | Stop hook (async) | `.claude/settings.local.json` |
 | `hooks/forgetting-memories.sh` | SessionStart hook (async) | `.claude/settings.local.json` |

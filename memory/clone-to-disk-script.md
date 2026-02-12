@@ -25,6 +25,8 @@ Clones the live root filesystem to a target disk (default `/dev/sda`) using rsyn
 ## Full Mode Extras
 - Regenerates `/etc/fstab` with target disk UUIDs
 - Creates 16GB swapfile on target
+- Bind-mounts `/proc`, `/sys`, `/dev`, `/run` for chroot with `--make-rslave` to prevent host mount propagation (avoids "target is busy" on unmount)
+- Unmounts bind mounts with `umount -R` (recursive) to handle any sub-mounts
 - Adds `amdgpu.gpu_recovery=1 amdgpu.runpm=0` kernel params if not present
 - Installs GRUB EFI bootloader (`--bootloader-id=USBClone --removable`)
 
