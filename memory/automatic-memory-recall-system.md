@@ -83,7 +83,7 @@ Flow:
 3. Reads `MEMORY_FORGETTING_SCHEDULE` from `agent.conf` (default `0/200`), parses as `offset/cycle`, skips if `session % cycle != offset`; compares against `runtime/last-forgetting-session` lock to prevent duplicate runs
 4. On first-ever run, initializes `last-forgetting-session` and exits (no cleanup on first use)
 5. Sends pink st-notify toast: "Memory forgetting started" (45s, `#ff6b9d` border, `#1a0010` bg)
-6. Spawns `claude -p --model opus --max-turns 30` with tools: `Read,Write,Glob,Bash(mv/mkdir/ls/cd/st-notify/python3)`
+6. Spawns `claude -p --model opus --max-turns 30 --dangerously-skip-permissions` with `PATH` prepended to include `src/memory/` (for `forget-memory` and `appreciate-memory` commands)
 7. The forgetting agent:
    - Runs a Python scoring snippet: `score = log2(1 + freq) * e^(-0.003466 * sessions_since_last_access) + appreciation` (200-session half-life)
    - Reviews bottom 3 non-pinned memories by reading their content
@@ -131,10 +131,14 @@ If absent, hooks fall back to the defaults shown above.
 - `runtime/last-forgetting-session` — session number of last forgetting run
 - `memory-metadata/` — per-memory JSON metadata (git-tracked)
 - `memory-cold/` — archived memories + metadata (git-tracked)
+- `scripts/run-forgetting` — manual forgetting trigger
+- `scripts/run-validation` — manual validation trigger
+- `scripts/get-forgetting-candidates` — print lowest-scoring memories without running the agent
 
 # Known gotchas
 1. **Hook recursion:** The inner `claude -p` runs in the same project and inherits `.claude/settings.local.json` hooks. Without `BLOCK_HOOK_AGENTS=1`, the inner session's `UserPromptSubmit` fires the recall hook again — which either blocks it (exit 2 from missing AGENT_HOOK_ID) or recurses infinitely. Every hook checks `BLOCK_HOOK_AGENTS` at the very top and exits 0 immediately if set.
 2. **SessionEnd cascade:** Without `AGENT_HOOK_ID=""`, the inner `claude -p` finishing triggers `cleanup-runtime.sh`, which deletes the main session's tracking file mid-session. The cleanup and resume hooks don't check `BLOCK_HOOK_AGENTS` but are independently protected by the empty `AGENT_HOOK_ID`.
+3. **`--allowedTools` Bash patterns are unreliable in `-p` mode:** `Bash(cmd *)` patterns for custom scripts silently fail — the agent runs but Bash tool calls get denied with "needs your approval" (which can't be granted in non-interactive `-p` mode). Tested: bare names, colon syntax, absolute paths — none worked. For subagents that need Bash, use `--dangerously-skip-permissions` instead and constrain behavior through the prompt and `--max-turns`. Standard tool names (Read, Edit, Write, Glob) work fine in `--allowedTools`.
 
 # Debugging
 Watch the log in real time from another terminal:

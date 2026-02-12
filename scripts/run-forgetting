@@ -5,6 +5,10 @@
 set -euo pipefail
 
 AGENT_DIR="${CLAUDE_PROJECT_DIR:-/home/yeyito/Workspace/Agent}"
+source "${AGENT_DIR}/agent.conf"
+COUNT="${1:-${MEMORY_FORGETTING_CANDIDATES:-0}}"
+echo "Forgetting: reviewing ${COUNT} candidate(s) (0 = all)"
+
 if [[ -n "${1:-}" ]]; then
   exec "${AGENT_DIR}/src/hooks/forgetting-memories.sh" --force "$1"
 else

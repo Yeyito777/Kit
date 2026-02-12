@@ -5,6 +5,10 @@
 set -euo pipefail
 
 AGENT_DIR="${CLAUDE_PROJECT_DIR:-/home/yeyito/Workspace/Agent}"
+source "${AGENT_DIR}/agent.conf"
+COUNT="${1:-${MEMORY_VALIDATION_AMOUNT:-0}}"
+echo "Validation: checking ${COUNT} memory/memories (0 = all)"
+
 if [[ -n "${1:-}" ]]; then
   exec "${AGENT_DIR}/src/hooks/validation-memories.sh" --force "$1"
 else

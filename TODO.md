@@ -1,4 +1,4 @@
-- [ ] Fix the fact that plans with clear context don't get their own session id... Check alternative ways of creating sessions maybe /new and /clear...
+- [ ] Setup the recall agent benchmark, where claude autogenerates it through a script that calls it feeding it 1-5 memories and it is asked to draft a prompt the either strongly/mostly/loosely relates to all of them. Then once we have that prompt it is saved with the metatdata of the memories it should be recalling. Generate a solid amount of these and then feed them to the recall system and see if it: overrecalls or underrecalls
 
 - [ ] When an agent finishes through the claude finish convo hook make sure it notifies the window in the wm such that it shows up with a notif on it (I can check on it) (This should be a global hook)
 

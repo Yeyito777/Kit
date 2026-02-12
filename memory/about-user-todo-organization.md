@@ -1,4 +1,4 @@
-Todo file locations and terminology — personal todo at ~/Desktop/todo.md ("my todo"), project-specific TODO.md files, Agent TODO.md, disambiguating "my todo" vs "project todo" vs "Agent todo"
+Todo file locations, task list organization, todo terminology — personal todo at ~/Desktop/todo.md ("my todo", "my tasks", "check my todo", "add to my todo"), project-specific TODO.md in project root, Agent TODO.md at /home/yeyito/Workspace/Agent/TODO.md — disambiguating "my todo" vs "project todo" vs "Agent todo", where to find or edit todos, task management file paths
 
 # Structure
 - **Personal todo**: `~/Desktop/todo.md` — the user's own task list

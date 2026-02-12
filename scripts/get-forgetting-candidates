@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# get-forgetting-candidates — Print the lowest-scoring memories according to the forgetting hook
+# Usage: get-forgetting-candidates [count]
+#   count  Number of lowest-scoring candidates to show (default: MEMORY_FORGETTING_CANDIDATES from agent.conf)
+set -euo pipefail
+
+AGENT_DIR="${CLAUDE_PROJECT_DIR:-/home/yeyito/Workspace/Agent}"
+if [[ -n "${1:-}" ]]; then
+  exec "${AGENT_DIR}/src/hooks/forgetting-memories.sh" --output-only-candidates "$1"
+else
+  exec "${AGENT_DIR}/src/hooks/forgetting-memories.sh" --output-only-candidates
+fi
