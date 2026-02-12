@@ -1,0 +1,14 @@
+The memory file **`/home/yeyito/Workspace/Agent/memory/about-user-todo-organization.md`** was checked and **all factual claims are accurate** — no changes were needed.
+
+**Verified:**
+- `~/Desktop/todo.md` exists
+- `/home/yeyito/Workspace/Agent/TODO.md` exists
+- Agent project root at `/home/yeyito/Workspace/Agent/` exists
+Done. The first line has been updated with:
+
+- More synonyms and natural phrasings a user might type ("my tasks", "check my todo", "add to my todo")
+- The full absolute path for the Agent TODO.md
+- Additional retrieval triggers like "where to find or edit todos", "task management file paths"
+- All key concepts preserved from the original
+
+The rest of the file remains untouched.

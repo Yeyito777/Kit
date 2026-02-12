@@ -1,0 +1,11 @@
+## Summary
+
+**`disk-audit-cleanup-guide`** — **KEPT** (appreciation bumped +1)
+
+**Reasoning:** Despite the low score (1.13, freq=2, last accessed 17 cycles ago), this memory contains significant institutional knowledge that is hard to reconstruct:
+
+1. **User-specific decisions** like "DO NOT suggest removing `speech-dispatcher`" and the confirmed-needed packages list (`chromium-widevine`, `arch-install-scripts`, `yay-debug`) prevent the agent from making unwanted suggestions in future interactions.
+2. **Context about expected anomalies** — e.g., Python segfaults being normal due to the custom qutebrowser build, the QtWebEngine coredump explanation — avoids misdiagnosing known issues.
+3. **Pending user decisions** (e.g., `zram-generator` kept for now, reviewing bun global installs) represent conversation state that shouldn't be lost.
+
+While the raw disk sizes could be re-gathered with `du`, the accumulated "why" behind each decision is the real value here. The low frequency is expected — disk audits are infrequent by nature. Keeping it costs nothing; losing it means re-learning the user's preferences from scratch.
