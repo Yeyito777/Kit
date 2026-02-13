@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# save-cmd.sh — UserPromptSubmit hook
+# save-cmd.sh — UserPromptSubmit + SessionStart hook
 # Reads session_id from the hook's stdin JSON and tells st
 # to save this terminal with "agent --resume <session-id>".
-# Runs on every message; lightweight (no subclaude, just jq + xprop).
+# Wired on UserPromptSubmit (every message) and SessionStart (resume/clear/compact/startup).
+# Fresh startups save "agent" (no --resume) so a blank session is restored.
 
 set -euo pipefail
 
@@ -20,6 +21,15 @@ fi
 
 # Extract session_id from hook stdin JSON
 INPUT=$(cat)
+
+# Fresh startups: save bare "agent" (no conversation to resume yet)
+EVENT=$(echo "$INPUT" | jq -r '.hook_event_name // empty' 2>/dev/null)
+SOURCE=$(echo "$INPUT" | jq -r '.source // empty' 2>/dev/null)
+if [[ "$EVENT" == "SessionStart" && "$SOURCE" == "startup" ]]; then
+  st-save-cmd "$AGENT_TERMINAL_PID" "agent" &>/dev/null || true
+  exit 0
+fi
+
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null)
 if [[ -z "$SESSION_ID" ]]; then
   exit 0

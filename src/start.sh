@@ -6,6 +6,9 @@ set -euo pipefail
 
 AGENT_DIR="/home/yeyito/Workspace/Agent"
 
+# Clear screen + scrollback for a clean start (also cleans up old content after persist restore)
+printf '\e[2J\e[3J\e[H'
+
 printf '\e[38;2;72;202;228m █████╗  ██████╗ ███████╗███╗   ██╗████████╗\e[0m\n'
 printf '\e[38;2;72;202;228m██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝\e[0m\n'
 printf '\e[38;2;0;180;216m███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║\e[0m\n'
