@@ -22,6 +22,7 @@ st simple terminal fork — source at ~/Config/st/, code organization (st.c, x.c
 - **SSH indicator**: overlay showing active SSH hostname
 - **Notification popups**: via `_ST_NOTIFY` X11 property; helper script at `scripts/st-notify`
 - **CWD tracking**: shell reports cwd via OSC 779, stored as `_ST_CWD` X11 property and in-memory via `persist_set_cwd()`
+- **Save command override**: via `_ST_SAVE_CMD` X11 property; helper script at `scripts/st-save-cmd`. External programs set a custom restore command that overrides the OSC 780 altcmd. Used by Claude Code agent hook to save `agent --resume <session-id>`. See `reference/save-cmd.md`.
 - **Persistence**: survives dwm restarts — saves scrollback history, screen content, cursor row, and CWD to `~/.runtime/st/st-<pid>/` every 30s and on exit. Registers with dwm via `_DWM_SAVE_ARGV`, restores via `st --from-save <dir>`. On restore, `persist_restore()` returns saved dimensions so `xinit()` creates the window at the correct size (avoids tresize content loss). See `reference/persist.md` for full technical details.
 - **Debug mode**: `-d` flag for prompt overlay/highlight
 - **zsh coordination**: terminal works closely with zsh vi-mode; see `README.md` for required `.zshrc` config
@@ -35,6 +36,7 @@ Located in `reference/` directory — read these before touching related feature
 - `notifications.md` — notification internals
 - `st-notify.md` — st-notify usage/options
 - `cwd-property.md` — `_ST_CWD`, OSC 779, spawntermhere
+- `save-cmd.md` — `_ST_SAVE_CMD`, external restore command override, st-save-cmd script, Claude agent hook
 - `persist.md` — dwm restart persistence, save/restore format, binary header, exit behavior, startup flows
 
 # Building

@@ -52,4 +52,18 @@ if [[ -n "$AGENT_TERMINAL_PID" ]] && command -v st-notify &>/dev/null; then
 fi
 
 touch "runtime/recalled-${AGENT_HOOK_ID}" "runtime/hook-${AGENT_HOOK_ID}.log"
-claude --dangerously-skip-permissions
+
+# Parse --resume flag (forwarded to claude)
+CLAUDE_ARGS=(--dangerously-skip-permissions)
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --resume)
+      [[ -n "${2:-}" ]] && CLAUDE_ARGS+=(--resume "$2") && shift 2 || { echo "--resume requires a session ID" >&2; exit 1; }
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
+
+claude "${CLAUDE_ARGS[@]}"
