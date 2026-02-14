@@ -5,7 +5,7 @@ Benchmark suite for measuring how well the recall agent identifies relevant memo
 
 # Key files
 - `src/recall.sh` — standalone recall logic (source of truth). Prompt on stdin, `memory/*.md` filenames on stdout. Config-driven via `agent.conf` (scheme, models, prompts).
-- `prompts/` — prompt template files (`.md`) used by `src/recall.sh`. Referenced by name in `MEMORY_RECALL_PROMPTS` config. Current: `v3.md`, `v4.md`, `v5-pass1.md`, `v5-pass2.md`.
+- `prompts/` — prompt template files (`.md`) used by `src/recall.sh`. Referenced by name in `MEMORY_RECALL_PROMPTS` config. Current: `recall-v3.md`, `recall-v4.md`, `recall-v5-pass1.md`, `recall-v5-pass2.md`.
 - `benchmark/recall/autogenerate.sh` — generates `.bench` test cases using opus. Picks random memories, asks opus to craft a related prompt with self-validation (opus reports which memories are genuinely relevant).
 - `benchmark/recall/run-benchmark.sh` — runs all `.bench` files through `src/recall.sh`, scores and writes results
 - `benchmark/recall/recall-prompts.md` — version log of recall agent prompts that have been tested, with benchmark results per version

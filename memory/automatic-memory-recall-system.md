@@ -67,7 +67,7 @@ Current best config (v5, ~75-79% perfect on benchmark):
 ```
 MEMORY_RECALL_SCHEME=double
 MEMORY_RECALL_MODELS=opus/opus
-MEMORY_RECALL_PROMPTS=v5-pass1/v5-pass2
+MEMORY_RECALL_PROMPTS=recall-v5-pass1/recall-v5-pass2
 ```
 
 ## Recall hook (`src/hooks/recall-memories.sh`)
@@ -139,9 +139,9 @@ Recall agent settings:
 ```
 MEMORY_RECALL_SCHEME=double              # single or double (two-pass)
 MEMORY_RECALL_MODELS=opus/opus           # model1/model2 (single uses model1 only)
-MEMORY_RECALL_PROMPTS=v5-pass1/v5-pass2  # prompt names from prompts/ dir (single uses first only)
+MEMORY_RECALL_PROMPTS=recall-v5-pass1/recall-v5-pass2  # prompt names from prompts/ dir (single uses first only)
 ```
-Prompt templates are stored in `prompts/` as `.md` files (e.g. `prompts/v5-pass1.md`). The name in the config omits the `.md` extension.
+Prompt templates are stored in `prompts/` as `.md` files (e.g. `prompts/recall-v5-pass1.md`). The name in the config omits the `.md` extension.
 
 Hook schedules are also configurable in `agent.conf` as `offset/cycle` (fires when `session % cycle == offset`):
 ```
