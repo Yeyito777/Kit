@@ -1,4 +1,4 @@
-dmenu fork — source at ~/Config/dmenu/, patches applied (vi-mode, center, border), config.h configuration, suckless build workflow (make && sudo make install), code organization (dmenu.c, drw.c, stest.c), no test suite
+dmenu suckless dynamic menu launcher — patched fork at ~/Config/dmenu/, config.h colors fonts prompt, vi-mode center border patches, build install (make && sudo make install), code layout dmenu.c drw.c stest.c util.c arg.h, dmenu_run dmenu_path scripts, application launcher, fuzzy picker, no test suite
 
 # Location
 - Source: `/home/yeyito/Config/dmenu/`

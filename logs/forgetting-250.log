@@ -1,0 +1,5 @@
+**Summary:**
+
+| Memory | Score | Decision | Reason |
+|--------|-------|----------|--------|
+| `dmenu-usage-and-scripting` | 0.7068 | **KEPT** (+1 appreciation) | Contains user-specific paths, custom keybindings, compiled C config details, and a multi-step workflow for adding dmenu scripts to dwm. This is hard-to-reconstruct glue knowledge tying together multiple config files in the user's environment. Low frequency is expected for config that rarely changes but is valuable when needed. |

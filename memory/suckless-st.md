@@ -13,7 +13,7 @@ st simple terminal fork — source at ~/Config/st/, code organization (st.c, x.c
 | `vimnav.c` / `vimnav.h` | Vim-style navigation mode (escape → hjkl, Ctrl+u/d, visual select) |
 | `sshind.c` / `sshind.h` | SSH indicator overlay |
 | `notif.c` / `notif.h` | Notification popup overlay |
-| `persist.c` / `persist.h` | dwm persist integration (save/restore scrollback, screen, cursor_y, CWD) |
+| `persist.c` / `persist.h` | dwm persist integration (save/restore scrollback, screen, cursor_y, CWD, ephemeral flag) |
 | `config.h` | All user configuration (fonts, colors, keybindings) |
 | `config.def.h` | Default config template |
 
@@ -23,7 +23,7 @@ st simple terminal fork — source at ~/Config/st/, code organization (st.c, x.c
 - **Notification popups**: via `_ST_NOTIFY` X11 property; helper script at `scripts/st-notify`
 - **CWD tracking**: shell reports cwd via OSC 779, stored as `_ST_CWD` X11 property and in-memory via `persist_set_cwd()`
 - **Save command override**: via `_ST_SAVE_CMD` X11 property; helper script at `scripts/st-save-cmd`. External programs set a custom restore command that overrides the OSC 780 altcmd. Used by Claude Code agent hook to save `agent --resume <session-id>`. See `reference/save-cmd.md`.
-- **Persistence**: survives dwm restarts — saves scrollback history, screen content, cursor row, and CWD to `~/.runtime/st/st-<pid>/` every 30s and on exit. Registers with dwm via `_DWM_SAVE_ARGV`, restores via `st --from-save <dir>`. On restore, `persist_restore()` returns saved dimensions so `xinit()` creates the window at the correct size (avoids tresize content loss). See `reference/persist.md` for full technical details.
+- **Persistence**: survives dwm restarts — saves scrollback history, screen content, cursor row, CWD, and ephemeral flag to `~/.runtime/st/st-<pid>/` every 30s and on exit. Registers with dwm via `_DWM_SAVE_ARGV`, restores via `st --from-save <dir>`. On restore, `persist_restore()` returns saved dimensions so `xinit()` creates the window at the correct size (avoids tresize content loss). Terminals launched with `-e` save `ephemeral=1` and restore with `zsh -ic <altcmd>` so st closes when the command exits. See `reference/persist.md` for full technical details.
 - **Debug mode**: `-d` flag for prompt overlay/highlight
 - **zsh coordination**: terminal works closely with zsh vi-mode; see `README.md` for required `.zshrc` config
 
