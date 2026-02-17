@@ -1,0 +1,4 @@
+WOHOO
+This line was added externally to test Neovim autoread.
+Second external edit — testing timer-based polling.
+Third external edit — testing notification.

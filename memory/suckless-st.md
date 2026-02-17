@@ -1,4 +1,4 @@
-st simple terminal fork — source at ~/Config/st/, code organization (st.c, x.c, vimnav.c, search.c, sshind.c, notif.c, persist.c), vim navigation mode, regex search (/ ? n N :noh), SSH indicator overlay, notification popups, CWD tracking via OSC 779, dwm persist/save/restore, debug mode, make test, config.h, zsh vi-mode coordination, suckless build workflow
+st simple terminal fork — source at ~/Config/st/, code organization (st.c, x.c, vimnav.c, sshind.c, notif.c, persist.c, cmdline.c, search.c), vim navigation mode, SSH indicator overlay, notification popups, command-line mode (: colon command), regex search (/ forward ? backward, n/N navigation, :noh, live incremental search, scrollback history search), CWD tracking via OSC 779, dwm persist/save/restore, debug mode, make test, config.h, zsh vi-mode coordination, suckless build workflow
 
 # Location
 - Source: `/home/yeyito/Config/st/`
@@ -10,11 +10,12 @@ st simple terminal fork — source at ~/Config/st/, code organization (st.c, x.c
 |------|---------|
 | `st.c` / `st.h` | Core terminal functionality |
 | `x.c` / `win.h` | X11 windowing |
-| `vimnav.c` / `vimnav.h` | Vim-style navigation mode (escape → hjkl, Ctrl+u/d, visual select) |
+| `vimnav.c` / `vimnav.h` | Vim-style navigation mode (escape → hjkl, Ctrl+u/d, visual select, f/F char search, text objects) |
 | `sshind.c` / `sshind.h` | SSH indicator overlay |
 | `notif.c` / `notif.h` | Notification popup overlay |
-| `search.c` / `search.h` | Regex search & command mode (/, ?, n, N, :noh) with incremental highlighting |
 | `persist.c` / `persist.h` | dwm persist integration (save/restore scrollback, screen, cursor_y, CWD, ephemeral flag) |
+| `cmdline.c` / `cmdline.h` | Vim-like `:` command-line overlay (insert/normal/visual modes, text objects, history, `/`/`?` search dispatch) |
+| `search.c` / `search.h` | Regex search module (pattern compilation, match highlighting, n/N navigation, scroll centering, :noh) |
 | `config.h` | All user configuration (fonts, colors, keybindings) |
 | `config.def.h` | Default config template |
 
@@ -25,7 +26,6 @@ st simple terminal fork — source at ~/Config/st/, code organization (st.c, x.c
 - **CWD tracking**: shell reports cwd via OSC 779, stored as `_ST_CWD` X11 property and in-memory via `persist_set_cwd()`
 - **Save command override**: via `_ST_SAVE_CMD` X11 property; helper script at `scripts/st-save-cmd`. External programs set a custom restore command that overrides the OSC 780 altcmd. Used by Claude Code agent hook to save `agent --resume <session-id>`. See `reference/save-cmd.md`.
 - **Persistence**: survives dwm restarts — saves scrollback history, screen content, cursor row, CWD, and ephemeral flag to `~/.runtime/st/st-<pid>/` every 30s and on exit. Registers with dwm via `_DWM_SAVE_ARGV`, restores via `st --from-save <dir>`. On restore, `persist_restore()` returns saved dimensions so `xinit()` creates the window at the correct size (avoids tresize content loss). Terminals launched with `-e` save `ephemeral=1` and restore with `zsh -ic <altcmd>` so st closes when the command exits. See `reference/persist.md` for full technical details.
-- **Regex search**: `/` and `?` for forward/backward regex search with incremental highlighting (`#fce094` warm yellow bg), `n`/`N` to navigate matches through full 32K scrollback, `:noh` to clear highlights, Escape restores original position. Search bar overlays last terminal row like neovim. Disabled on alt screen.
 - **Debug mode**: `-d` flag for prompt overlay/highlight
 - **zsh coordination**: terminal works closely with zsh vi-mode; see `README.md` for required `.zshrc` config
 
@@ -40,6 +40,7 @@ Located in `reference/` directory — read these before touching related feature
 - `cwd-property.md` — `_ST_CWD`, OSC 779, spawntermhere
 - `save-cmd.md` — `_ST_SAVE_CMD`, external restore command override, st-save-cmd script, Claude agent hook
 - `persist.md` — dwm restart persistence, save/restore format, binary header, exit behavior, startup flows
+- `cmdline.md` — vim-like `:` command-line mode, modal editing (insert/normal/visual), text objects, operator-pending, history, X11 child window, `/`/`?` regex search (live incremental, n/N, :noh)
 
 # Building
 ```bash
