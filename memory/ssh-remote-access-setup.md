@@ -1,9 +1,10 @@
-SSH remote access setup — key-based auth, port forwarding, fail2ban, sshd hardening, remote machine 192.168.0.100, public IP 190.140.208.6, port 48222, ~/.ssh/config aliases home-local home-remote, ed25519 key, no password auth
+SSH remote access setup — key-based auth, port forwarding, fail2ban, sshd hardening, remote machine 192.168.0.100 whale kitsune, public IP dynamic via DHCP, kitsune.yeyito.dev DDNS via DNSimple, port 48222, ~/.ssh/config aliases kitsune kitsune-local, ed25519 key, no password auth
 
 ## Machines
 
 - **Local (this machine):** yeyito's daily driver
 - **Remote:** 192.168.0.100 (LAN), Arch Linux with systemd
+- **Router:** Arris, Cable Onda ISP, dynamic IP via DHCP
 
 ## SSH Key
 
@@ -16,13 +17,13 @@ SSH remote access setup — key-based auth, port forwarding, fail2ban, sshd hard
 
 ```
 # Local network
-Host home-local
+Host kitsune-local
     HostName 192.168.0.100
     User yeyito
 
 # Over the internet
-Host home-remote
-    HostName 190.140.208.6
+Host kitsune
+    HostName kitsune.yeyito.dev
     User yeyito
     Port 48222
 ```
@@ -59,12 +60,16 @@ backend = systemd
 ## Port Forwarding (Router)
 
 - External `48222` (TCP) → `192.168.0.100:22`
-- Public IP: `190.140.208.6`
 
-## Open Questions
+## Dynamic DNS (DNSimple)
 
-- Static vs dynamic IP not confirmed — check router WAN settings (DHCP = dynamic). If dynamic, set up DDNS (user prefers DNSimple if paid, DuckDNS if free)
-- Password `meow` was exposed in conversation — should be changed via `passwd` on remote (only affects sudo/local login since SSH password auth is disabled)
+- Domain: `yeyito.dev` (A record ID: 73086845, TTL: 300s)
+- ISP assigns dynamic IP via DHCP — DDNS keeps the A record updated
+- Script: `/home/yeyito/Workspace/DNSimple-config/update-dns.sh` on remote machine
+- Systemd timer: `dnsimple-ddns.timer` runs every 5 minutes
+- GitHub repo: `Yeyito777/DNSimple-config` (private)
+- Env vars loaded from `/home/yeyito/Documents/Sensitive/keys.sh` on remote
+- Zone had to be manually activated via API (`PUT /v2/{id}/zones/yeyito.dev/activation`)
 
 ## Updating this memory
-If the public IP changes, update the IP in the SSH config and here. If DDNS is set up, replace the IP with the hostname. If additional hardening is added (e.g. changing the SSH port on the server itself, adding more AllowUsers), update the sshd section.
+If the DDNS setup changes (new record ID, different domain), update the Dynamic DNS section. If additional hardening is added (e.g. changing the SSH port on the server itself, adding more AllowUsers), update the sshd section. If the DNSimple-config repo moves or the script changes, update the paths.

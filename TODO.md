@@ -1,8 +1,12 @@
+- [ ] Memory retrieval system that uses <memory-metadata>, <fuzzy-match>, <memory>, <description> tags.
+- [ ] Recall tool that only reads from <memory> tags
+- [ ] fix the fact that forgetting and validation agents appear to not fire (I think the root cause is closing the claude session before it's done?)
+
+- [ ] Why is validation and forgetting hooks not working? Fix them.
+
 - [ ] Consider expanding the descriptions of memories from short 1-liners to multiliners describing what can be found if the file is read.
 
 - [ ] Add a post tool use hook that whenever the agent cd's into a directory that has a reference/ it tells the agent about it and to consider reading any reference files that it might consider relevant to the user qurey. Also update your current reference files to follow memory notation, top line is plaintext sentence description of the reference, and instructions at the bottom on what to watch out for / what may need to be updated.
-
-- [ ] Split the memory recall agent into many subagents that each analyze a subset of all total memories, make #subagents dynamic depending on the amount of memories maybe.. floor(total memories / 20), then aggregate their answers. Should prevent needle-in-a-haystack style problems. Tune the "20" param and make it a setting in agent.conf such that agents are not over-eager with memories (need to have sufficient) but don't have too much that they rot.
 
 - [ ] Add to CLAUDE.md inside each project that I care about a "How to test this" section. This section should get fed to the agent through a tool hook, so that for example it always knows to test its changes with st -d by spawning a window and having it print the necessary output (sidestepping it being able to use UI entirely).
 

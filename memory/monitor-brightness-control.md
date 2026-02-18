@@ -1,4 +1,4 @@
-Monitor brightness control — DDC/CI, ddcutil, ddcutil-service D-Bus daemon, busctl, VCP feature 0x10, ASUS VG328 external monitor, I2C bus 6, i2c-dev kernel module, brightness script, MCCS protocol, display backlight
+Monitor brightness control — DDC/CI, ddcutil, ddcutil-service D-Bus daemon, busctl, VCP feature 0x10 0x12 contrast, ASUS VG328 external monitor, I2C bus 6 /dev/i2c-6, i2c-dev kernel module, ~/.local/bin/brightness script wrapper, MCCS protocol, screen dimming display backlight, brightnessctl alternative, set get increase decrease percentage, caching debounce flock, Arch Linux pacman AUR packages
 
 ## Why not brightnessctl?
 `brightnessctl` only works with kernel backlight drivers (laptop panels). The system has no `/sys/class/backlight` device — only keyboard/NIC LEDs in `/sys/class/leds`. External monitors like the ASUS VG328 don't expose a kernel backlight interface.
@@ -56,7 +56,7 @@ brightness 50      # set to 50%
 brightness +10     # increase by 10%
 brightness -10     # decrease by 10%
 ```
-Clamps values to 0-100. Relative mode reads current value via GetVcp then applies delta.
+Clamps values to 0-100. Caches current brightness in `/tmp/brightness-val` to avoid slow I2C reads. On first invocation per daemon lifetime, sets sleep multiplier to 0.1 (flag file `/tmp/brightness-sleep-init`). Uses debounced writes with flock (`/tmp/brightness-lock`) so only one process talks to I2C at a time; rapid calls coalesce. SetVcp uses flag 4 (NO_VERIFY) for speed.
 
 ## Packages
 - `ddcutil` (pacman) — core library + CLI

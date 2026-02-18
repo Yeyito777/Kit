@@ -1,0 +1,36 @@
+Done. Here's the summary from the subagent:
+
+**Memory file checked:** `/home/yeyito/Workspace/Agent/memory/monitor-brightness-control.md`
+
+**Verified as accurate (no changes):**
+- No `/sys/class/backlight` device
+- `/sys/class/leds` contains keyboard/NIC LEDs only
+- Monitor details (ASUS VG328, product code 12995, manufactured 2020 week 34)
+- I2C bus `/dev/i2c-6`, DRM connector `card1-HDMI-A-1`, VCP version 2.2
+- `/etc/modules-load.d/i2c-dev.conf` exists with `i2c-dev`
+- `ddcutil` exists at `/usr/bin/ddcutil` (version 2.2.5)
+- D-Bus coordinates (service, object, interface names)
+- GetVcp/SetVcp method signatures
+- Brightness script at `~/.local/bin/brightness` (exists, executable)
+- Script usage (no args = print, N = set, +N/-N = relative, clamps 0-100)
+- Packages: `ddcutil` (pacman), `ddcutil-service` (AUR), `i2c-tools` (pacman)
+- `brightnessctl` not installed
+
+**One change made:**
+- Updated the brightness script description to reflect the current implementation, which now includes:
+  - Caching current brightness in `/tmp/brightness-val` to avoid slow I2C reads
+  - Sleep multiplier initialization on first invocation (flag file `/tmp/brightness-sleep-init`)
+  - Debounced writes with `flock` (`/tmp/brightness-lock`) so rapid calls coalesce
+  - `SetVcp` uses flag 4 (`NO_VERIFY`) instead of 0
+
+(The Lua diagnostics in the system reminder are unrelated to this task — they appear to come from your editor's language server for some Lua library definition files.)
+Done. Here's what I changed in the first line:
+
+- Added VCP `0x12` (contrast) since the file documents multiple VCP codes
+- Added `/dev/i2c-6` device path alongside the bus number
+- Added `~/.local/bin/brightness` script path for direct path-based recall
+- Added `screen dimming display backlight` as synonym phrases users might search for
+- Added `brightnessctl alternative` since the file explains why brightnessctl doesn't work
+- Added `set get increase decrease percentage` for action-based queries
+- Added `caching debounce flock` covering the script's optimization details
+- Added `Arch Linux pacman AUR packages` for package management queries
