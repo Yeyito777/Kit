@@ -1,6 +1,6 @@
 <memory-metadata>
 {
-  "frequency": 10,
+  "frequency": 11,
   "last_accessed_session": 0,
   "created_session": 0,
   "appreciation": 1,
@@ -8,20 +8,28 @@
 }
 </memory-metadata>
 
+<conditional>
+Recall if the user prompt mentions dmenu, dmenu scripts, adding a keybinding, clipmenu, or writing a new launcher script.
+</conditional>
+
+<fuzzy-match>
+dmenu, clipmenu, dmenu_run, dmenu script, ~/.local/bin, dwm keybinding
+</fuzzy-match>
+
 <memory>
-dmenu scripting and usage guide — stdin|dmenu|action pattern, writing new dmenu scripts in ~/.local/bin/, dwm keybindings, flags (-c center, -l lines, -p prompt, -t truncate), appearance config, clipmenu integration, adding dmenu commands to dwm config.h
+dmenu is a generic menu and picker tool used as the UI building block for various scripts. It is not an app launcher or clipboard manager on its own — it just reads lines from stdin, lets the user fuzzy-search through them, and prints the selected line to stdout. Everything else (what the list contains, what happens with the selection) is up to the calling script.
 
-# What dmenu is
-dmenu is a generic menu/picker. It reads a list of lines on stdin, lets the user fuzzy-search, and outputs the selected line on stdout. It is not an app launcher or clipboard manager by itself — it's a building block other scripts use as their UI.
+## The core pattern
 
-# The pattern
+Every dmenu-based script follows the same shape:
+
 ```
-[something generates a list] | dmenu | [something acts on the choice]
+[generate a list] | dmenu [flags] | [act on the choice]
 ```
 
-The caller decides what the list is, what flags to pass (e.g. `-l 8` for vertical list, `-p "prompt:"` for a prompt string), and what to do with the output.
+The caller decides what the list is, which flags to pass (e.g. `-l 8` for a vertical list, `-p "prompt:"` for a prompt string), and what to do with the picked result.
 
-# Where things live
+## Where things live
 
 | What                          | Where                            |
 |-------------------------------|----------------------------------|
@@ -29,12 +37,14 @@ The caller decides what the list is, what flags to pass (e.g. `-l 8` for vertica
 | dmenu C source / appearance   | `~/Config/dmenu/config.h`        |
 | keybindings to invoke scripts | `~/Config/dwm/config.h`          |
 
-# Existing bindings
+## Existing keybindings
+
 - `Alt+p` — `dmenu_run -c` (app launcher, centered)
 - `Super+v` — `clipmenu -vi -c -t 80` (clipboard history, centered vertical list with `-l 8`, truncated at 80 chars)
 
-# Adding a new dmenu script
-1. Write a shell script in `~/.local/bin/` (make it executable)
+## How to add a new dmenu script
+
+1. Write a shell script in `~/.local/bin/` and make it executable.
 2. Add a command array and keybinding in `~/Config/dwm/config.h`:
    ```c
    static const char *powercmd[] = { "powermenu", NULL };
@@ -42,21 +52,21 @@ The caller decides what the list is, what flags to pass (e.g. `-l 8` for vertica
    { MODKEY,  XK_x,  spawn,  {.v = powercmd } },
    ```
 3. Build dwm: `cd ~/Config/dwm && make && sudo make install`
-4. Restart dwm
+4. Restart dwm.
 
-# Global appearance (baked into dmenu config.h)
-- Centered mode is OFF by default — appears as top bar unless `-c` is passed
-- Minimum width (when centered): 500px
-- Border: 1px, #1d9bf0
-- Vi mode enabled, starts in normal mode
+## Global appearance (compiled into dmenu via config.h)
 
-# UI differences between scripts
-Callers pass flags to change dmenu's layout per invocation:
-- `-c` — centered on screen (without it, dmenu is a top bar)
-- `-l N` — vertical list with N lines (without it, dmenu is a horizontal bar)
-- `-t N` — truncate displayed items to N characters with "..." (full text still output on stdout)
-- `-p "text"` — display a prompt string
-- `-nb`, `-nf`, `-sb`, `-sf` — colors for normal/selected background/foreground
+Centered mode is OFF by default — dmenu renders as a top bar unless `-c` is passed. When centered, the minimum width is 500px. The border is 1px with color #1d9bf0. Vi mode is enabled and starts in normal mode.
+
+## Per-invocation flags
+
+Each script can change dmenu's look and behavior by passing different flags:
+
+- `-c` — center the menu on screen (otherwise it appears as a top bar)
+- `-l N` — show a vertical list of N lines (otherwise it is a single horizontal bar)
+- `-t N` — truncate displayed items to N characters with "..." (the full text is still output on stdout when selected)
+- `-p "text"` — display a prompt string to the left of the input
+- `-nb`, `-nf`, `-sb`, `-sf` — override colors for normal/selected background/foreground
 
 ---
 Update this memory when new dmenu scripts are added or the workflow changes.

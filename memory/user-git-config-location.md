@@ -1,31 +1,37 @@
 <memory-metadata>
 {
-  "frequency": 61,
-  "last_accessed_session": 527,
+  "frequency": 63,
+  "last_accessed_session": 0,
   "created_session": 0,
   "appreciation": 0,
   "pinned": true
 }
 </memory-metadata>
 
+<conditional>
+Recall if the user prompt mentions git config, gitconfig, git credentials, git aliases, or GIT_CONFIG_GLOBAL.
+</conditional>
+
+<fuzzy-match>
+gitconfig, .gitconfig, GIT_CONFIG_GLOBAL, git-credentials, git alias
+</fuzzy-match>
+
 <memory>
-Git configuration — non-default gitconfig path at ~/.config/git/.gitconfig, GIT_CONFIG_GLOBAL env var, git-credentials location, aliases (s=status, sync=pull+push)
+The user's git configuration lives in a non-default location: `~/.config/git/.gitconfig` instead of the usual `~/.gitconfig`. This is wired up through the `GIT_CONFIG_GLOBAL` environment variable.
 
-# Location
-Git config is NOT at the default `~/.gitconfig`. It's at:
-```
-~/.config/git/.gitconfig
-```
+## Config location
 
-Set via environment variable:
+The gitconfig path is set via an exported env var:
 ```bash
 export GIT_CONFIG_GLOBAL="$HOME/.config/git/.gitconfig"
 ```
 
-# Credentials
-Stored at: `~/.config/git/.git-credentials`
+## Credentials
 
-# Current Aliases
+Git credentials are stored alongside the config at `~/.config/git/.git-credentials`.
+
+## Aliases
+
 | Alias | Command |
 |-------|---------|
 | `s` | `status` |

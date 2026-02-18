@@ -1,6 +1,10 @@
-- [ ] Memory retrieval system that uses <memory-metadata>, <fuzzy-match>, <memory>, <description> tags.
-- [ ] Recall tool that only reads from <memory> tags
+- [ ] Deadass just move to opencode and continue there, if opencode is insufficient you're going to have to opensource claude code but I don't think this will be necessary
+
+# OLD
+
 - [ ] fix the fact that forgetting and validation agents appear to not fire (I think the root cause is closing the claude session before it's done?)
+
+- [ ] Memory creation scheme.
 
 - [ ] Why is validation and forgetting hooks not working? Fix them.
 

@@ -1,20 +1,26 @@
 <memory-metadata>
 {
-  "frequency": 12,
-  "last_accessed_session": 486,
+  "frequency": 14,
+  "last_accessed_session": 0,
   "created_session": 0,
   "appreciation": 0,
   "pinned": false
 }
 </memory-metadata>
 
+<conditional>
+Recall if the user prompt mentions terminal colors, color scheme, ANSI colors, st config, hex color values, or theming scripts.
+</conditional>
+
+<fuzzy-match>
+ocean palette, st config.h, ANSI escape, hex colors, seafoam, abyss black, lagoon aqua
+</fuzzy-match>
+
 <memory>
-st terminal color scheme — ocean-themed palette, hex values (#00050f through #f1faee), ANSI escape codes (\e[32m etc.), foreground/background/cursor defaults, color names for scripting and theming, defined in st config.h
+The terminal uses a custom ocean-themed color scheme defined in the st config. Every color is named after something underwater or coastal, ranging from deep abyss black to foamy white. The palette, defaults, and hex values are all set in `/home/yeyito/Config/st/config.h` (lines 99-131).
 
-# Location
-Defined in: `/home/yeyito/Config/st/config.h` (lines 99-131)
+## Palette
 
-# Palette
 | Index | Name | Hex | Semantic |
 |-------|------|-----|----------|
 | 0 | black | `#00050f` | abyssal trench |
@@ -34,12 +40,16 @@ Defined in: `/home/yeyito/Config/st/config.h` (lines 99-131)
 | 14 | bright cyan | `#48cae4` | lagoon aqua |
 | 15 | bright white | `#f1faee` | foamy white |
 
-# Defaults
-- Foreground (256): `#f1faee` (foamy white)
-- Background (257): `#00050f` (abyss black)
-- Cursor (258): `#48cae4` (lagoon aqua)
+## Default Colors
 
-# ANSI escape usage
+- Foreground (index 256): `#f1faee` — foamy white
+- Background (index 257): `#00050f` — abyss black
+- Cursor (index 258): `#48cae4` — lagoon aqua
+
+## ANSI Escape Codes
+
+When scripting or theming, these are the most commonly used escape sequences and what they map to:
+
 ```
 \e[32m  → seafoam teal
 \e[33m  → sunlight sand

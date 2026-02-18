@@ -19,7 +19,7 @@ from pathlib import Path
 
 # Add src/ to path for memory_metadata import
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from memory_metadata import get_description
+from memory_metadata import get_description, get_fuzzy_match
 
 STOP_WORDS = {
     # articles
@@ -222,16 +222,21 @@ def main():
                   sys.stderr)
         return
 
-    # Presearch: filter memories by keyword matching
+    # Presearch: match prompt keywords against <fuzzy-match> terms
     matched = 0
     for f in mem_files:
-        text = f.read_text()
+        fuzzy_terms = get_fuzzy_match(f)
         desc = get_description(f)
-        stem = f.stem.replace('-', ' ')
 
-        search_text = (stem + ' ' + desc).lower()
+        if fuzzy_terms:
+            # Build search text from fuzzy-match terms + filename stem
+            search_text = (f.stem.replace('-', ' ') + ' ' + ' '.join(fuzzy_terms)).lower()
+        else:
+            # Fallback for memories without <fuzzy-match>: use stem + description
+            search_text = (f.stem.replace('-', ' ') + ' ' + desc).lower()
+
         if include_content:
-            search_text += ' ' + text.lower()
+            search_text += ' ' + f.read_text().lower()
 
         search_tokens = tokenize(search_text)
 

@@ -1,42 +1,57 @@
 <memory-metadata>
 {
-  "frequency": 47,
-  "last_accessed_session": 529,
+  "frequency": 55,
+  "last_accessed_session": 555,
   "created_session": 0,
   "appreciation": 0,
   "pinned": true
 }
 </memory-metadata>
 
+<conditional>
+Recall if the user prompt mentions memory recall, memory update, memory forgetting, hook agents, UserPromptSubmit, session counter, agent.conf, or memory metadata.
+</conditional>
+
+<fuzzy-match>
+recall hook, update hook, forgetting hook, MEMORY_RECALL, MEMORY_UPDATE, MEMORY_FORGETTING, agent.conf, memory-metadata, recall.sh, reconcile_metadata, BLOCK_HOOK_AGENTS, memory-cold
+</fuzzy-match>
+
 <memory>
-Agent memory system architecture — recall/update/forgetting hook agents, UserPromptSubmit opus subclaude for recall, session counter, in-file memory-metadata (frequency, appreciation, pinned), agent.conf toggles, cold storage archival to memory-cold/, hook recursion prevention, runtime files, debugging hooks, memory_metadata.py
+The automatic memory system uses three hook-driven subagents to recall, update, and forget memories across sessions. Each agent is toggled independently via `agent.conf` and spawns a `claude -p` subclaude to do its work. Memories live as markdown files in `memory/` with embedded metadata, and the session counter ensures usage-based tracking rather than counting idle opens.
 
-# Overview
-Three hook-driven subagents, all toggleable via `agent.conf`:
-1. **Recall agent** — A `UserPromptSubmit` hook spawns a one-shot `claude -p --model opus` call to determine which memories are relevant to the user's prompt. Relevant memories are surfaced once per session via deduplication. Toggle: `MEMORY_RECALL=on|off`.
-2. **Update agent** — A `Stop` hook (async) spawns a subclaude after every response that reviews the conversation transcript and updates/creates memories if new persistent information was discussed. Toggle: `MEMORY_UPDATE=on|off`.
-3. **Forgetting agent** — A `SessionStart` hook (async) spawns a subclaude on a configurable schedule (via `MEMORY_FORGETTING_SCHEDULE`, default `0/200` meaning session % 200 == 0) to review the lowest-scoring memories and either archive them to `memory-cold/` or bump their appreciation. Toggle: `MEMORY_FORGETTING=on|off`.
+## Overview
 
-# Architecture
+Three subagents handle the memory lifecycle:
+
+1. **Recall agent** -- A `UserPromptSubmit` hook spawns a one-shot `claude -p --model opus` call to determine which memories are relevant to the user's prompt. Relevant memories are surfaced once per session via deduplication. Toggle: `MEMORY_RECALL=on|off`.
+2. **Update agent** -- A `Stop` hook (async) spawns a subclaude after every response that reviews the conversation transcript and updates or creates memories if new persistent information was discussed. Toggle: `MEMORY_UPDATE=on|off`.
+3. **Forgetting agent** -- A `SessionStart` hook (async) spawns a subclaude on a configurable schedule (via `MEMORY_FORGETTING_SCHEDULE`, default `0/200` meaning session % 200 == 0) to review the lowest-scoring memories and either archive them to `memory-cold/` or bump their appreciation. Toggle: `MEMORY_FORGETTING=on|off`.
 
 ## Shell launcher (`src/start.sh`, aliased as `agent` in `~/.zshrc`)
+
+The launcher sets up the session environment before handing off to Claude:
+
 1. `cd` to Agent project
 2. Generates `AGENT_HOOK_ID` via `openssl rand -hex 4` (8 hex chars), exports it
 3. Captures `AGENT_TERMINAL_PID` by walking up the process tree: first looks for an ancestor named `st`, falls back to first ancestor owning an X window. Exported for hooks to use with `st-notify`
-4. Runs `python3 src/reconcile_metadata.py` to sync `memory/` with `memory-metadata/`
+4. Runs `python3 src/reconcile_metadata.py` to ensure all memory files have in-file metadata tags
 5. Sends a pink st-notify toast showing the upcoming session number (current counter + 1)
 6. Creates `runtime/recalled-<id>` (dedup ledger) and `runtime/hook-<id>.log` (debug log)
 7. Launches `claude --dangerously-skip-permissions`
 
 ## Session counter
+
 Tracks how many sessions have been actively used (not just opened).
-- `runtime/session-counter` — persists across sessions, starts at 0
+
+- `runtime/session-counter` persists across sessions, starts at 0
 - Incremented on the **first message** of each session (not on launch), so accidental opens don't count
 - The recall hook compares `AGENT_HOOK_ID` against `runtime/session-last-increment` to detect first-message-of-session
 - On launch, `start.sh` shows a preview notification with `counter + 1` (the number it will become)
 
-## Memory metadata (in-file)
-Metadata is colocated inside each `memory/*.md` file using XML tags at the top:
+## In-file memory structure
+
+Each `memory/*.md` file uses XML tags to organize metadata, recall hints, and content:
+
 ```
 <memory-metadata>
 {
@@ -48,33 +63,71 @@ Metadata is colocated inside each `memory/*.md` file using XML tags at the top:
 }
 </memory-metadata>
 
+<conditional>
+Recall if the user prompt mentions X, Y, or Z.
+</conditional>
+
+<fuzzy-match>
+keyword1, keyword2, keyword3
+</fuzzy-match>
+
 <memory>
+First line = plaintext description for recall pointers (when <conditional> is absent).
 ...actual memory content...
 </memory>
 ```
-- `frequency` — incremented each time the recall hook surfaces the memory
-- `last_accessed_session` — updated to current session on each recall
-- `created_session` — set when metadata is first created
-- `appreciation` — bonus score, set manually or by the forgetting agent to protect a memory
-- `pinned` — if true, the forgetting agent will never consider this memory for archival
 
-`src/memory_metadata.py` is the shared Python module for all metadata operations (read, write, ensure, get_description). It has a CLI interface for use from bash scripts.
+### Tag roles
 
-`src/reconcile_metadata.py` ensures every memory file has metadata tags (adds defaults if missing). Runs at every session start via `start.sh`. If a new memory is created without tags, reconcile adds them automatically.
+- **`<memory-metadata>`** -- JSON block with usage tracking fields. Managed by the pipeline, never edited manually by the main Claude session or subagents.
+  - `frequency` -- incremented each time the recall hook surfaces the memory
+  - `last_accessed_session` -- updated to current session on each recall
+  - `created_session` -- set when metadata is first created
+  - `appreciation` -- bonus score, set manually or by the forgetting agent to protect a memory
+  - `pinned` -- if true, the forgetting agent will never consider this memory for archival
+- **`<conditional>`** -- A one-line natural-language condition describing when this memory should be recalled. This is the **primary** text used by `get_description()` to generate recall pointers shown to the LLM. Example: "Recall if the user prompt mentions memory recall, hook agents, or agent.conf."
+- **`<fuzzy-match>`** -- Comma-separated keywords used by the presearch filter (`presearch.py`) to narrow candidates before the LLM pass. Matched against user prompt tokens via word-boundary, substring, and SequenceMatcher fuzzy matching.
+- **`<memory>`** -- The actual memory content. First line inside `<memory>` serves as a fallback description if `<conditional>` is absent.
+
+### Key Python module: `src/memory_metadata.py`
+
+Shared Python module for all in-file tag operations. Has a CLI interface for use from bash scripts. Key functions:
+- `read_metadata()` / `write_metadata()` -- read/write the `<memory-metadata>` JSON block
+- `ensure_file()` / `ensure_structure()` -- add missing tags to a memory file (used by reconcile)
+- `get_description()` -- returns `<conditional>` content if present, falls back to first line of `<memory>`, then first non-tag line, then filename stem
+- `get_fuzzy_match()` -- returns list of keywords from `<fuzzy-match>` tag (empty list if absent)
+- `get_memory_content()` -- returns only the text inside `<memory>` tags (used by the `recall` command)
+
+`src/reconcile_metadata.py` ensures every memory file has `<memory-metadata>` and `<memory>` tags (adds defaults if missing). Runs at every session start via `start.sh`. If a new memory is created without tags, reconcile adds them automatically.
+
+## Presearch filter (`src/presearch.py`)
+
+An optional keyword pre-filter that runs before the LLM recall pass to narrow the candidate list. Enabled via `MEMORY_RECALL_PRESEARCH=on` in `agent.conf` (default: off).
+
+Flow:
+1. Tokenizes the user prompt, removes stop words (extensive built-in list)
+2. For each memory file, builds a search text from `<fuzzy-match>` keywords + filename stem (falls back to stem + `get_description()` if no `<fuzzy-match>` tag)
+3. Matches prompt keywords against search text using three tiers: exact word-boundary, substring, and SequenceMatcher fuzzy (threshold 0.95)
+4. A memory matches if ANY keyword hits -- outputs matching pointers to stdout
+5. If `MEMORY_RECALL_PRESEARCH_CONTENT=on`, includes full file content in search text too
+
+When presearch is off, all memory pointers are passed to the LLM (no filtering).
 
 ## Standalone recall script (`src/recall.sh`)
-The source of truth for recall logic. Takes a user prompt on stdin, outputs recalled `memory/*.md` filenames to stdout (one per line). Used by the hook and by `benchmark/recall/run-benchmark.sh`.
 
-Supports two schemes configured via `agent.conf`:
+This is the source of truth for recall logic. Takes a user prompt on stdin, outputs recalled `memory/*.md` filenames to stdout (one per line). Used by the hook and by `benchmark/recall/run-benchmark.sh`.
+
+It supports two schemes configured via `agent.conf`:
 
 **Single scheme** (`MEMORY_RECALL_SCHEME=single`):
-1. Generates memory pointers via `memory_metadata.get_description()` (reads first line inside `<memory>` tags)
-2. Loads prompt template from `prompts/<name>.md` (first name in `MEMORY_RECALL_PROMPTS`)
-3. Calls `claude -p --model <MODEL1> --max-turns 1 --no-session-persistence` with pointers + user prompt
-4. Parses response: validates files exist on disk, outputs valid filenames
+1. Generates memory pointers via `memory_metadata.get_description()` (reads `<conditional>` content, falls back to first line inside `<memory>` tags)
+2. If presearch is on, filters pointers through `presearch.py` first
+3. Loads prompt template from `prompts/<name>.md` (first name in `MEMORY_RECALL_PROMPTS`)
+4. Calls `claude -p --model <MODEL1> --max-turns 1 --no-session-persistence` with pointers + user prompt
+5. Parses response: validates files exist on disk, outputs valid filenames
 
 **Double scheme** (`MEMORY_RECALL_SCHEME=double`, default):
-1. **Pass 1 (broad candidate selection):** Same as single — generates pointers, loads first prompt template, calls `MODEL1`. Biased toward overrecall.
+1. **Pass 1 (broad candidate selection):** Same as single -- generates pointers (optionally presearch-filtered), loads first prompt template, calls `MODEL1`. Biased toward overrecall.
 2. **Pass 2 (re-rank with full content):** Reads the full content of each pass 1 candidate, loads second prompt template, calls `MODEL2`. Filters to only memories whose specific content is actually needed. Can return nothing if no candidates are truly relevant.
 3. Pass 2 results are constrained to pass 1 candidates (can only remove, not add). On pass 2 failure, falls back to pass 1 results.
 
@@ -82,19 +135,15 @@ All inner `claude -p` calls run with `AGENT_HOOK_ID=""` and `BLOCK_HOOK_AGENTS=1
 
 Prompt templates live in `prompts/` as `.md` files. The script appends `<user_prompt>` tags and `Available memories:` (pass 1) or `Candidate memories:` with full content (pass 2).
 
-Current best config (v5, ~75-79% perfect on benchmark):
-```
-MEMORY_RECALL_SCHEME=double
-MEMORY_RECALL_MODELS=opus/opus
-MEMORY_RECALL_PROMPTS=recall-v5-pass1/recall-v5-pass2
-```
+Current prompt templates: `recall-v3.md`, `recall-v4.md`, `recall-v5-pass1.md`, `recall-v5-pass2.md`, `recall-v6.md`, `recall-v6-pass2.md`, `recall-v7.md`.
 
 ## Recall hook (`src/hooks/recall-memories.sh`)
+
 Wired as `UserPromptSubmit` in `.claude/settings.local.json` (60s timeout, "Recalling memories..." spinner). Delegates core recall to `src/recall.sh`.
 
 Flow per message:
 1. On first message of session: increments session counter, writes hook ID to `runtime/session-last-increment`
-2. Validates `AGENT_HOOK_ID` and tracking file exist (exit 2 if not — blocks prompt, notifies user)
+2. Validates `AGENT_HOOK_ID` and tracking file exist (exit 2 if not -- blocks prompt, notifies user)
 3. Extracts prompt from stdin JSON via `jq`
 4. Pipes prompt into `src/recall.sh`, captures output
 5. Deduplicates against `recalled-<id>` ledger
@@ -103,10 +152,18 @@ Flow per message:
 8. If memories were recalled and `AGENT_TERMINAL_PID` is set, fires one `st-notify` toast per memory (teal border on dark green bg, backgrounded)
 9. stdout with exit 0 = context injected into the main Claude session
 
+## `recall` command (`src/memory/recall`)
+
+A bash script placed on `PATH` by `start.sh` (via `PATH="${AGENT_DIR}/src/memory:$PATH"`). Used by the main Claude session to load memory content after the hook surfaces filenames. Extracts only the text inside `<memory>` tags using `memory_metadata.get_memory_content()`, keeping metadata and recall hints out of the context window.
+
+Usage: `recall memory/foo.md` or `recall foo.md` or `recall foo`
+
 ## Resume hook (inline in `.claude/settings.local.json`)
+
 Wired to `SessionStart` with `"matcher": "resume"`. Truncates `runtime/recalled-<id>` so the dedup ledger resets on session resume. This allows all memories to be re-surfaced when switching between sessions, since the previous session's conversation context may no longer be present.
 
 ## Memory update hook (`src/hooks/update-memories.sh`)
+
 Wired as `Stop` in `.claude/settings.local.json` with `async: true` (300s timeout). Runs in the background after every Claude response.
 
 Flow:
@@ -119,6 +176,7 @@ Flow:
 7. All output logged to `runtime/hook-<id>.log` with `[update]` prefix
 
 ## Forgetting hook (`src/hooks/forgetting-memories.sh`)
+
 Wired as `SessionStart` in `.claude/settings.local.json` with `async: true` (300s timeout). Fires on every session start (new or resume).
 
 Flow:
@@ -134,16 +192,30 @@ Flow:
    - Decides per memory: bump appreciation (keep) or `mv` to `memory-cold/` (archive)
    - Sends per-memory pink st-notify toasts for each archived memory: "Forgot memory/{name}.md"
 
+## Validation hook (`src/hooks/validation-memories.sh`)
+
+Wired as `SessionStart` in `.claude/settings.local.json` with `async: true`. Fires on a configurable schedule (default `75/100`, i.e. session % 100 == 75). Toggle: `MEMORY_VALIDATION=on|off`.
+
+Flow:
+1. Schedule and lock gating (same pattern as forgetting hook)
+2. Selects up to `MEMORY_VALIDATION_AMOUNT` (default 20) random memories
+3. Sends blue st-notify toast: "Memory validation started"
+4. **Phase 1 (content validation):** Spawns a subclaude that fans out subagents, one per memory file. Each subagent reads the memory, verifies factual claims against actual files/commands/configs on disk, and fixes outdated information. Only edits content inside `<memory>` tags.
+5. **Phase 2 (descriptor update):** Spawns a second subclaude that reads each memory's full content and rewrites the first line inside `<memory>` to maximize recall retrieval quality.
+6. Output logged to `logs/validation-<session>.log`
+
 ## Cold storage (`memory-cold/`)
-When the forgetting agent archives a memory, the file is moved:
-- `memory/{name}.md` → `memory-cold/{name}.md` (metadata travels with the file since it's embedded)
+
+When the forgetting agent archives a memory, the file is moved from `memory/{name}.md` to `memory-cold/{name}.md` (metadata travels with the file since it's embedded).
 
 To restore: move the file back to `memory/`. The next reconciliation pass picks it up.
 
 ## Cleanup hook (`src/hooks/cleanup-runtime.sh`)
+
 Wired to `SessionEnd`. Deletes `runtime/recalled-<id>` and `runtime/hook-<id>.log`.
 
-# Configuration
+## Configuration
+
 `agent.conf` at project root controls which subagents are active:
 ```
 MEMORY_RECALL=on       # recall agent (UserPromptSubmit)
@@ -151,13 +223,15 @@ MEMORY_UPDATE=on       # update agent (Stop, async)
 MEMORY_FORGETTING=on   # forgetting agent (SessionStart, async)
 MEMORY_VALIDATION=on   # validation agent (SessionStart, async)
 ```
-Set to `off` to disable. Checked on every hook invocation — no restart needed.
+Set to `off` to disable. Checked on every hook invocation -- no restart needed.
 
 Recall agent settings:
 ```
 MEMORY_RECALL_SCHEME=double              # single or double (two-pass)
 MEMORY_RECALL_MODELS=opus/opus           # model1/model2 (single uses model1 only)
 MEMORY_RECALL_PROMPTS=recall-v5-pass1/recall-v5-pass2  # prompt names from prompts/ dir (single uses first only)
+MEMORY_RECALL_PRESEARCH=off              # on to enable keyword pre-filter before LLM pass
+MEMORY_RECALL_PRESEARCH_CONTENT=off      # on to include full file content in presearch matching
 ```
 Prompt templates are stored in `prompts/` as `.md` files (e.g. `prompts/recall-v5-pass1.md`). The name in the config omits the `.md` extension.
 
@@ -168,32 +242,39 @@ MEMORY_VALIDATION_SCHEDULE=75/100   # fires at session % 100 == 75
 ```
 If absent, hooks fall back to the defaults shown above.
 
-# Key files
-- `agent.conf` — subagent toggles and recall config
-- `src/recall.sh` — standalone recall logic (source of truth, config-driven)
-- `prompts/` — recall prompt templates (`.md` files referenced by `MEMORY_RECALL_PROMPTS`)
-- `src/hooks/recall-memories.sh` — recall agent hook (calls `src/recall.sh`)
-- `src/hooks/update-memories.sh` — update agent hook
-- `src/hooks/forgetting-memories.sh` — forgetting agent hook
-- `src/hooks/cleanup-runtime.sh` — cleanup hook
-- `src/memory_metadata.py` — shared Python module for in-file metadata operations (read, write, ensure, get_description)
-- `src/reconcile_metadata.py` — ensures all memory files have metadata tags (called by `start.sh`)
-- `.claude/settings.local.json` — hook wiring (project-local, gitignored by Claude Code)
-- `runtime/` — gitignored directory for session tracking files and logs
-- `runtime/session-counter` — global session count (persists across sessions)
-- `runtime/session-last-increment` — hook ID that last incremented the counter
-- `runtime/last-forgetting-session` — session number of last forgetting run
-- `memory-cold/` — archived memories with embedded metadata (git-tracked)
-- `scripts/run-forgetting` — manual forgetting trigger
-- `scripts/run-validation` — manual validation trigger
-- `scripts/get-forgetting-candidates` — print lowest-scoring memories without running the agent
+## Key files
 
-# Known gotchas
-1. **Hook recursion:** The inner `claude -p` runs in the same project and inherits `.claude/settings.local.json` hooks. Without `BLOCK_HOOK_AGENTS=1`, the inner session's `UserPromptSubmit` fires the recall hook again — which either blocks it (exit 2 from missing AGENT_HOOK_ID) or recurses infinitely. Every hook checks `BLOCK_HOOK_AGENTS` at the very top and exits 0 immediately if set.
+- `agent.conf` -- subagent toggles, recall config, presearch settings, hook schedules
+- `src/recall.sh` -- standalone recall logic (source of truth, config-driven)
+- `src/presearch.py` -- keyword pre-filter using `<fuzzy-match>` terms (optional, before LLM pass)
+- `src/memory/recall` -- `recall` command (prints `<memory>` content only, on PATH via `start.sh`)
+- `prompts/` -- recall prompt templates (`.md` files referenced by `MEMORY_RECALL_PROMPTS`)
+- `src/hooks/recall-memories.sh` -- recall agent hook (calls `src/recall.sh`)
+- `src/hooks/update-memories.sh` -- update agent hook
+- `src/hooks/forgetting-memories.sh` -- forgetting agent hook
+- `src/hooks/validation-memories.sh` -- validation agent hook (content verification + descriptor update)
+- `src/hooks/cleanup-runtime.sh` -- cleanup hook
+- `src/memory_metadata.py` -- shared Python module for in-file tag operations (read, write, ensure, get_description, get_fuzzy_match, get_memory_content)
+- `src/reconcile_metadata.py` -- ensures all memory files have in-file tags (called by `start.sh`)
+- `.claude/settings.local.json` -- hook wiring (project-local, gitignored by Claude Code)
+- `runtime/` -- gitignored directory for session tracking files and logs
+- `runtime/session-counter` -- global session count (persists across sessions)
+- `runtime/session-last-increment` -- hook ID that last incremented the counter
+- `runtime/last-forgetting-session` -- session number of last forgetting run
+- `runtime/last-validation-session` -- session number of last validation run
+- `memory-cold/` -- archived memories with embedded metadata (git-tracked)
+- `scripts/run-forgetting` -- manual forgetting trigger
+- `scripts/run-validation` -- manual validation trigger
+- `scripts/get-forgetting-candidates` -- print lowest-scoring memories without running the agent
+
+## Known gotchas
+
+1. **Hook recursion:** The inner `claude -p` runs in the same project and inherits `.claude/settings.local.json` hooks. Without `BLOCK_HOOK_AGENTS=1`, the inner session's `UserPromptSubmit` fires the recall hook again -- which either blocks it (exit 2 from missing AGENT_HOOK_ID) or recurses infinitely. Every hook checks `BLOCK_HOOK_AGENTS` at the very top and exits 0 immediately if set.
 2. **SessionEnd cascade:** Without `AGENT_HOOK_ID=""`, the inner `claude -p` finishing triggers `cleanup-runtime.sh`, which deletes the main session's tracking file mid-session. The cleanup and resume hooks don't check `BLOCK_HOOK_AGENTS` but are independently protected by the empty `AGENT_HOOK_ID`.
-3. **`--allowedTools` Bash patterns are unreliable in `-p` mode:** `Bash(cmd *)` patterns for custom scripts silently fail — the agent runs but Bash tool calls get denied with "needs your approval" (which can't be granted in non-interactive `-p` mode). Tested: bare names, colon syntax, absolute paths — none worked. For subagents that need Bash, use `--dangerously-skip-permissions` instead and constrain behavior through the prompt and `--max-turns`. Standard tool names (Read, Edit, Write, Glob) work fine in `--allowedTools`.
+3. **`--allowedTools` Bash patterns are unreliable in `-p` mode:** `Bash(cmd *)` patterns for custom scripts silently fail -- the agent runs but Bash tool calls get denied with "needs your approval" (which can't be granted in non-interactive `-p` mode). Tested: bare names, colon syntax, absolute paths -- none worked. For subagents that need Bash, use `--dangerously-skip-permissions` instead and constrain behavior through the prompt and `--max-turns`. Standard tool names (Read, Edit, Write, Glob) work fine in `--allowedTools`.
 
-# Debugging
+## Debugging
+
 Watch the log in real time from another terminal:
 ```
 tail -f runtime/hook-*.log

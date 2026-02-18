@@ -86,4 +86,4 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-claude "${CLAUDE_ARGS[@]}"
+PATH="${AGENT_DIR}/src/memory:$PATH" claude "${CLAUDE_ARGS[@]}"

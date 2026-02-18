@@ -1,34 +1,43 @@
 <memory-metadata>
 {
-  "frequency": 16,
-  "last_accessed_session": 529,
+  "frequency": 20,
+  "last_accessed_session": 0,
   "created_session": 142,
   "appreciation": 2,
   "pinned": false
 }
 </memory-metadata>
 
+<conditional>
+Recall if the user prompt mentions the recall benchmark, recall accuracy testing, .bench files, autogenerate.sh, run-benchmark.sh, or scoring recall results.
+</conditional>
+
+<fuzzy-match>
+recall benchmark, .bench, autogenerate.sh, run-benchmark.sh, recall-prompts.md, PERFECT OVERRECALL UNDERRECALL, benchmark/recall
+</fuzzy-match>
+
 <memory>
-Recall benchmark system — benchmark/recall/, autogenerate.sh, run-benchmark.sh, src/recall.sh standalone recall script, .bench file format, .result scoring, recall-prompts.md prompt version log, testing recall accuracy, prompts/ directory
+Benchmark suite for measuring how accurately the recall agent identifies relevant memories from a user prompt. Everything lives in `benchmark/recall/`.
 
-# Overview
-Benchmark suite for measuring how well the recall agent identifies relevant memories from a user prompt. Lives in `benchmark/recall/`.
+## Key files
 
-# Key files
-- `src/recall.sh` — standalone recall logic (source of truth). Prompt on stdin, `memory/*.md` filenames on stdout. Config-driven via `agent.conf` (scheme, models, prompts).
-- `prompts/` — prompt template files (`.md`) used by `src/recall.sh`. Referenced by name in `MEMORY_RECALL_PROMPTS` config. Current: `recall-v3.md`, `recall-v4.md`, `recall-v5-pass1.md`, `recall-v5-pass2.md`.
-- `benchmark/recall/autogenerate.sh` — generates `.bench` test cases using opus. Picks random memories, asks opus to craft a related prompt with self-validation (opus reports which memories are genuinely relevant).
-- `benchmark/recall/run-benchmark.sh` — runs all `.bench` files through `src/recall.sh`, scores and writes results
-- `benchmark/recall/recall-prompts.md` — version log of recall agent prompts that have been tested, with benchmark results per version
-- `benchmark/recall/tests/*.bench` — test case files
-- `benchmark/recall/results/*.result` — benchmark result files
+The recall logic itself is in `src/recall.sh` — the standalone, source-of-truth script that takes a prompt on stdin and outputs `memory/*.md` filenames on stdout. It is config-driven via `agent.conf` (scheme, models, prompts). The prompt templates it uses live in `prompts/` as `.md` files, referenced by name in the `MEMORY_RECALL_PROMPTS` config. Current templates: `recall-v3.md`, `recall-v4.md`, `recall-v5-pass1.md`, `recall-v5-pass2.md`.
 
-# .bench file format
+Within the benchmark directory:
+
+- `autogenerate.sh` — generates `.bench` test cases using opus. Picks random memories, asks opus to craft a related prompt with self-validation (opus reports which memories are genuinely relevant).
+- `run-benchmark.sh` — runs all `.bench` files through `src/recall.sh`, scores each one, and writes results.
+- `recall-prompts.md` — version log of recall agent prompts that have been tested, with benchmark results per version.
+- `tests/*.bench` — the test case files.
+- `results/*.result` — the benchmark result files.
+
+## .bench file format
+
 ```
-# Recall Benchmark Test
-# Generated: <timestamp>
-# Picked: <int>
-# Expected: <int>
+## Recall Benchmark Test
+## Generated: <timestamp>
+## Picked: <int>
+## Expected: <int>
 
 [expected]
 memory/foo.md
@@ -37,22 +46,26 @@ memory/bar.md
 [prompt]
 <user prompt text>
 ```
-Expected section can be empty for no-recall tests (prompts where zero memories should be recalled).
 
-# autogenerate.sh options
-- `--samples <int>` — how many .bench files to generate (default: 1)
+The expected section can be empty for no-recall tests (prompts where zero memories should be recalled).
+
+## Generating tests with autogenerate.sh
+
+Options:
+
+- `--samples <int>` — how many `.bench` files to generate (default: 1).
 - `--amount <int>` — how many memories to pick (default: random 0-5). Use `--amount 0` to generate no-recall tests.
-- `--name <string>` — name for the .bench file(s) (default: random hex ID)
+- `--name <string>` — name for the `.bench` file(s) (default: random hex ID).
 
-## Test generation
-- **Normal tests (amount >= 1):** Picks N random memories, sends full content to opus, asks it to write a realistic prompt and self-validate which memories are genuinely relevant. Only validated memories go into `[expected]`.
-- **No-recall tests (amount = 0):** Uses sonnet to generate a generic conversational message (confirmation, correction, follow-up, reaction, etc.) with a random category for diversity. Expected set is empty.
+For normal tests (amount >= 1), the script picks N random memories, sends their full content to opus, and asks it to write a realistic prompt while self-validating which memories are genuinely relevant. Only validated memories go into `[expected]`. For no-recall tests (amount = 0), it uses sonnet to generate a generic conversational message (confirmation, correction, follow-up, reaction, etc.) with a random category for diversity. The expected set is left empty.
 
-# Scoring
-Each test is classified as:
-- **PERFECT** — recalled exactly the expected set (including empty for no-recall tests)
-- **OVERRECALL** — got all expected memories plus extras
-- **UNDERRECALL** — missed at least one expected memory (may also have extras)
+## Scoring
+
+Each test is classified into one of three outcomes:
+
+- **PERFECT** — recalled exactly the expected set (including empty for no-recall tests).
+- **OVERRECALL** — got all expected memories plus extras.
+- **UNDERRECALL** — missed at least one expected memory (may also have extras).
 
 Result files contain a `[summary]` with aggregate stats (counts, percentages, total misrecalled memories) and a `[tests]` section with per-test breakdowns.
 

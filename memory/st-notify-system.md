@@ -1,6 +1,6 @@
 <memory-metadata>
 {
-  "frequency": 14,
+  "frequency": 15,
   "last_accessed_session": 0,
   "created_session": 0,
   "appreciation": 0,
@@ -8,27 +8,36 @@
 }
 </memory-metadata>
 
-<memory>
-st-notify popup notification system — usage and options (--timeout, --border, --background, --foreground, --textsize), _ST_NOTIFY X11 property wire protocol, xprop/xdotool, toast stacking, default appearance, sending notifications from shell scripts to st terminal
+<conditional>
+Recall if the user prompt mentions st-notify, toast notifications, popup notifications in st, _ST_NOTIFY, or sending notifications to a terminal window.
+</conditional>
 
-# Location
+<fuzzy-match>
+st-notify, _ST_NOTIFY, xprop notify, st toast, st popup, notif.c
+</fuzzy-match>
+
+<memory>
+st-notify is a popup toast notification system built into st. It renders styled overlay toasts inside the terminal window using a custom X11 property, with no dependency on OSC escape sequences or external notification daemons.
+
+## Location
+
 - Source: `/home/yeyito/Config/st/notif.c`, `/home/yeyito/Config/st/notif.h`
 - Script: `/home/yeyito/Config/st/scripts/st-notify`
 - Reference: `/home/yeyito/Config/st/reference/notifications.md`
 
-# Quick Usage
+## Quick Usage
 
 ```bash
-# Basic notification (sends to current terminal via $$)
+## Basic notification (sends to current terminal via $$)
 st-notify $$ "Hello world"
 
-# With options
+## With options
 st-notify -t 10000 -b "#ff0000" $$ "Error occurred"
 st-notify -ts 24 -fg "#00ff00" $$ "Big green text"
 st-notify -fg "#ffffff" -bg "#660000" -b "#ff4444" $$ "Alert!"
 ```
 
-# Options
+## Options
 
 | Option | Short | Argument | Description |
 |--------|-------|----------|-------------|
@@ -39,28 +48,26 @@ st-notify -fg "#ffffff" -bg "#660000" -b "#ff4444" $$ "Alert!"
 | `--textsize` | `-ts` | `<int>` | Font pixel size (window auto-fits to text) |
 | `--help` | `-h` | | Show usage help |
 
-# How It Works
-- Uses X11 property `_ST_NOTIFY` on the st window (NOT OSC escape sequences)
-- Script finds the X window via `xdotool search --pid <pid>`, then sets the property via `xprop`
-- st detects `PropertyNotify`, reads+deletes the property, renders a styled overlay toast
-- Toasts stack vertically in the top-right corner (newest on top, pushes old ones down)
-- Each toast auto-dismisses independently after its timeout
-- Multi-line messages supported (newlines in the message string)
-- Max 8 simultaneous toasts; oldest evicted if full
+## How It Works
 
-# Wire Protocol (for direct xprop usage)
-Options are encoded as a metadata header prepended to the message:
-- `\x1f` separates key=value pairs
-- `\x1e` separates metadata header from message body
+The `st-notify` script finds the st X window via `xdotool search --pid <pid>` and sets the `_ST_NOTIFY` X11 property on it using `xprop`. When st detects the `PropertyNotify` event, it reads and deletes the property, then renders a styled overlay toast.
+
+Toasts stack vertically in the top-right corner, with the newest on top pushing older ones down. Each toast auto-dismisses independently after its timeout. Multi-line messages are supported (newlines in the message string). A maximum of 8 simultaneous toasts are allowed; the oldest is evicted if full.
+
+## Wire Protocol
+
+For direct `xprop` usage without the script, options are encoded as a metadata header prepended to the message body. Key=value pairs are separated by `\x1f`, and the header is separated from the message body by `\x1e`:
+
 - Format: `key=val\x1fkey=val\x1f\x1emessage body`
 - Keys: `t` (timeout), `b` (border), `bg` (background), `fg` (foreground), `ts` (textsize)
 
 ```bash
-# Direct xprop (no script needed)
+## Direct xprop (no script needed)
 xprop -id <window-id> -f _ST_NOTIFY 8u -set _ST_NOTIFY "Plain message"
 ```
 
-# Default Appearance
+## Default Appearance
+
 - Border: `#1d9bf0` (blue), 2px thick
 - Background: `#00050f` (terminal background)
 - Foreground: `#ffffff` (white)
@@ -68,13 +75,15 @@ xprop -id <window-id> -f _ST_NOTIFY 8u -set _ST_NOTIFY "Plain message"
 - Timeout: 5000ms
 - Margin: 10px, Padding: 8px, Toast gap: 6px
 
-# Configuration
+## Configuration
+
 All defaults live in `notif.h` as `static const` variables. Rebuild st after changes:
 ```bash
 cd /home/yeyito/Config/st && make && sudo make install
 ```
 
-# Dependencies
+## Dependencies
+
 Requires `xdotool` and `xprop` to be installed.
 
 ---

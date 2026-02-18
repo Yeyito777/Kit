@@ -1,6 +1,6 @@
 <memory-metadata>
 {
-  "frequency": 19,
+  "frequency": 22,
   "last_accessed_session": 0,
   "created_session": 139,
   "appreciation": 0,
@@ -8,48 +8,65 @@
 }
 </memory-metadata>
 
+<conditional>
+Recall if the user prompt mentions clone-to-disk, cloning the live system, rsync disk clone, portable boot drive, or USB clone script.
+</conditional>
+
+<fuzzy-match>
+clone-to-disk, clone-to-disk.sh, rsync clone, USB clone, live clone, portable boot drive, disk backup script
+</fuzzy-match>
+
 <memory>
-clone-to-disk.sh live system cloning script — ~/Workspace/Utils/clone-to-disk.sh, rsync full/update/soft-update modes, USB disk cloning, GPT partitioning, EFI/GRUB bootloader, fstab UUID regeneration, swapfile creation, NetworkManager profile sanitization, .rsync-filter rules, disk backup, portable boot drive
-
-# clone-to-disk.sh
-
-**Location:** `~/Workspace/Utils/clone-to-disk.sh`
-
-## What It Does
-Clones the live root filesystem to a target disk (default `/dev/sda`) using rsync, making it a bootable portable drive.
+`clone-to-disk.sh` is a script that clones the live root filesystem onto a target disk (default `/dev/sda`) using rsync, producing a bootable portable drive. It lives at `~/Workspace/Utils/clone-to-disk.sh`.
 
 ## Modes
-- **full** (default): Wipes target, creates fresh GPT partitions (512MB EFI + rest ext4), copies everything, regenerates fstab with new UUIDs, creates 16GB swapfile, installs GRUB bootloader
-- **update** (`--update` / `-u`): Syncs changes to existing clone, uses `--delete` to remove files no longer on source. Excludes `/etc/fstab` and `/boot/grub/grub.cfg` to preserve target's boot config
-- **soft-update** (`--soft-update` / `-s`): Same as update but without `--delete`, keeps extra files on target
 
-## Rsync Excludes
+The script has three modes that control how aggressively it writes to the target:
+
+- **full** (default): Wipes the target disk entirely, creates fresh GPT partitions (512MB EFI + remainder as ext4), copies everything, regenerates fstab with the new UUIDs, creates a 16GB swapfile, and installs a GRUB bootloader.
+- **update** (`--update` / `-u`): Syncs changes to an existing clone using `--delete` so files removed from the source are also removed from the target. Excludes `/etc/fstab` and `/boot/grub/grub.cfg` to preserve the target's own boot config.
+- **soft-update** (`--soft-update` / `-s`): Same as update but without `--delete`, so extra files already on the target are kept.
+
+## What rsync excludes
+
+These paths are always excluded because they are either virtual filesystems, mount points, or host-specific:
+
 - Virtual filesystems: `/dev/*`, `/proc/*`, `/sys/*`, `/run/*`, `/tmp/*`
 - Mount points: `/mnt/*`, `/media/*`
 - Other: `/lost+found`, `/swapfile`, `/etc/ssh/ssh_host_*`, `/etc/systemd/system/*/sshd.service`
-- Uses `--filter=': .rsync-filter'` to pick up per-directory filter rules (e.g. `~/.rsync-filter` excludes `/.ssh/id_*`)
-- In update modes: also excludes `/etc/fstab` and `/boot/grub/grub.cfg`
 
-## Post-Rsync Sanitization
-- **NetworkManager profiles**: Strips `interface-name=`, `mac-address=`, and `cloned-mac-address=` from all `.nmconnection` files so profiles aren't pinned to source hardware. Wifi passwords and other settings are preserved.
+Per-directory filter rules are also supported via `--filter=': .rsync-filter'`. For example, `~/.rsync-filter` excludes `/.ssh/id_*` so private keys don't land on the clone.
 
-## Full Mode Extras
-- Regenerates `/etc/fstab` with target disk UUIDs
-- Creates 16GB swapfile on target
-- Bind-mounts `/proc`, `/sys`, `/dev`, `/run` for chroot with `--make-rslave` to prevent host mount propagation (avoids "target is busy" on unmount)
+In update modes specifically, `/etc/fstab` and `/boot/grub/grub.cfg` are additionally excluded to avoid overwriting the target's boot configuration.
+
+## What is NOT excluded (notable)
+
+- `/etc/machine-id` is cloned as-is, so both machines share the same machine-id.
+- NetworkManager connection profiles are copied, but sanitized of hardware-specific fields (see below).
+
+## Post-rsync sanitization
+
+After the copy, the script strips hardware-specific fields from NetworkManager profiles so the clone works on different hardware. Specifically, it removes `interface-name=`, `mac-address=`, and `cloned-mac-address=` from all `.nmconnection` files. Wifi passwords and other settings are preserved.
+
+## Full mode extras
+
+When running in full mode, several additional steps happen after rsync:
+
+- Regenerates `/etc/fstab` with the target disk's UUIDs
+- Creates a 16GB swapfile on the target
+- Bind-mounts `/proc`, `/sys`, `/dev`, `/run` for chroot, using `--make-rslave` to prevent host mount propagation (avoids "target is busy" on unmount)
 - Unmounts bind mounts with `umount -R` (recursive) to handle any sub-mounts
-- Adds `amdgpu.gpu_recovery=1 amdgpu.runpm=0` kernel params if not present
-- Installs GRUB EFI bootloader (`--bootloader-id=USBClone --removable`)
+- Adds `amdgpu.gpu_recovery=1 amdgpu.runpm=0` kernel params if not already present
+- Installs GRUB EFI bootloader with `--bootloader-id=USBClone --removable`
 
-## What Is NOT Excluded (notable)
-- `/etc/machine-id` — cloned as-is (both machines share same machine-id)
-- NetworkManager connection profiles — copied but sanitized of hardware-specific fields
+## Accepted rsync exit codes
 
-## Accepted Rsync Exit Codes
+Because this runs against a live system, some "error" codes are expected and treated as success:
+
 - 0: Success
-- 23: Partial transfer (normal for live system)
-- 24: Files vanished before transfer (normal for live system)
+- 23: Partial transfer (normal for a live system where some files are locked)
+- 24: Files vanished before transfer (normal for a live system with transient files)
 
 ---
-**Keeping this memory up to date:** If modes, excludes, post-rsync steps, or partition layout change in clone-to-disk.sh, update the relevant section. If new sanitization steps are added (e.g. machine-id regeneration), add them under Post-Rsync Sanitization.
+**Keeping this memory up to date:** If modes, excludes, post-rsync steps, or partition layout change in clone-to-disk.sh, update the relevant section. If new sanitization steps are added (e.g. machine-id regeneration), add them under Post-rsync sanitization.
 </memory>

@@ -1,33 +1,45 @@
 <memory-metadata>
 {
-  "frequency": 7,
-  "last_accessed_session": 347,
+  "frequency": 8,
+  "last_accessed_session": 0,
   "created_session": 0,
   "appreciation": 0,
   "pinned": false
 }
 </memory-metadata>
 
+<conditional>
+Recall if the user prompt mentions Supcord, Discord alternative, the Rust Axum backend, Tauri desktop app, or the Ed25519 identity system.
+</conditional>
+
+<fuzzy-match>
+Supcord, supcord-server, Ed25519, Axum, Tauri, WebSocket protocol, decentralized chat
+</fuzzy-match>
+
 <memory>
-Supcord decentralized Discord alternative — Rust Axum backend, React TypeScript Vite frontend, Tauri v2 desktop app, Ed25519 identity, SQLite storage, WebSocket JSON protocol, privacy-first chat at ~/Workspace/Supcord, Phase 1 complete, E2EE planned
+Supcord is a privacy-first, decentralized Discord alternative built because Discord introduced age verification and face ID tracking. The goal is zero verification, zero accounts, zero data harvesting. The project lives at `~/Workspace/Supcord` and Phase 1 is complete — the app is functional end-to-end.
 
-# Motivation
-Built because Discord added age verification and face ID tracking. Privacy-first alternative with no verification, no accounts, no data harvesting.
+## Tech Stack
 
-# Tech Stack
-- **Backend**: Rust (Axum + Tokio), SQLite via sqlx, Ed25519 identity (ed25519-dalek)
-- **Frontend**: React 19 + TypeScript + Vite 7, dark Discord-like UI
-- **Desktop**: Tauri v2 (WebKit on Linux/macOS, Chromium on Windows)
-- **Browser identity**: @noble/ed25519 for keypair generation, stored in localStorage
+- **Backend**: Rust with Axum + Tokio for async, SQLite via sqlx for storage, and Ed25519 identity using ed25519-dalek.
+- **Frontend**: React 19 + TypeScript + Vite 7 with a dark Discord-like UI.
+- **Desktop**: Tauri v2 wraps the frontend (WebKit on Linux/macOS, Chromium on Windows).
+- **Browser identity**: @noble/ed25519 handles keypair generation in the browser, persisted in localStorage.
 
-# Architecture
-- **Zero-trust infrastructure**: servers relay and persist, but are not trust anchors (E2EE planned)
-- **Identity**: Ed25519 keypair, UserId = first 16 bytes of public key base64url-encoded, display names not unique
-- **Wire protocol**: tagged JSON over WebSocket (`{ "type": "...", "data": ... }`)
-- **Server deployment**: single binary with `--port`, `--bind`, `--text-only`, `--database` flags
-- **License**: MIT OR Apache-2.0
+## Architecture
 
-# Workspace Layout
+The infrastructure is zero-trust by design — servers relay and persist messages but are not trust anchors. E2EE is planned but not yet implemented.
+
+Identity is based on Ed25519 keypairs. A user's ID is the first 16 bytes of their public key, base64url-encoded. Display names are not unique.
+
+Communication uses a tagged JSON wire protocol over WebSocket: `{ "type": "...", "data": ... }`.
+
+The server deploys as a single binary with CLI flags: `--port`, `--bind`, `--text-only`, `--database`.
+
+Licensed under MIT OR Apache-2.0.
+
+## Workspace Layout
+
 ```
 ~/Workspace/Supcord/
   Cargo.toml           # workspace root (edition 2024, resolver 2)
@@ -48,29 +60,33 @@ Built because Discord added age verification and face ID tracking. Privacy-first
   reference/           # roadmap.md, dependencies.md
 ```
 
-# Current State (Phase 1 complete)
-All foundation work is done: SQLite storage, auth flow, real message send/receive with broadcast, server/channel CRUD with invite codes, frontend wired to backend. The app is functional end-to-end.
+## Current State (Phase 1 complete)
 
-# Key Design Decisions
-- TLS now, E2EE (MLS/mls-rs) later — "unable to decrypt" is worse than no encryption
-- Always-on node first, evolving to super-peers then auto-replication
-- Voice planned as adaptive: admin-hosted SFU for 5+, WebRTC P2P fallback for 1-4
-- Admin-configurable history visibility (None / Days(N) / All)
-- No federation yet — intentional, makes everything harder
+All foundation work is done: SQLite storage, auth flow, real message send/receive with broadcast, server/channel CRUD with invite codes, and the frontend fully wired to the backend. The app works end-to-end.
 
-# Running It
+## Key Design Decisions
+
+- **TLS now, E2EE later**: Using TLS for transport security first. E2EE via MLS/mls-rs is planned, but "unable to decrypt" is worse than no encryption at this stage.
+- **Topology**: Starting with an always-on node, then evolving to super-peers and eventually auto-replication.
+- **Voice**: Planned as adaptive — admin-hosted SFU for groups of 5+, WebRTC P2P fallback for 1-4 participants.
+- **History visibility**: Admin-configurable per channel (None / Days(N) / All).
+- **No federation**: Intentionally deferred because it makes everything harder.
+
+## Running It
+
 ```bash
-# Server
+## Server
 cd ~/Workspace/Supcord && cargo run --bin supcord-server
 
-# Frontend dev
+## Frontend dev
 cd ~/Workspace/Supcord/client && bun run dev
 
-# Open http://localhost:5173
+## Open http://localhost:5173
 ```
 
-# System Dependencies (Arch)
-Tauri requires: gtk3, webkit2gtk-4.1, libappindicator-gtk3, librsvg. See `reference/dependencies.md` for full list.
+## System Dependencies (Arch)
+
+Tauri requires: gtk3, webkit2gtk-4.1, libappindicator-gtk3, librsvg. See `reference/dependencies.md` for the full list.
 
 ---
 Update this memory when the project structure, architecture decisions, tech stack, or current phase changes significantly.

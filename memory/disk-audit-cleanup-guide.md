@@ -1,150 +1,138 @@
 <memory-metadata>
 {
-  "frequency": 14,
-  "last_accessed_session": 492,
+  "frequency": 17,
+  "last_accessed_session": 0,
   "created_session": 0,
   "appreciation": 1,
   "pinned": false
 }
 </memory-metadata>
 
+<conditional>
+Recall if the user prompt mentions disk space, storage cleanup, disk audit, freeing space, partition usage, pacman cache, coredumps, orphaned packages, or specific caches (pip, bun, yay, go, cargo).
+</conditional>
+
+<fuzzy-match>
+disk audit, du -sh, paccache, pacman cache, coredump, orphaned packages, pip cache, bun cache, yay cache, go-build, nvme, vacuum journal, rustup toolchain, cargo cache, disk cleanup
+</fuzzy-match>
+
 <memory>
-Arch Linux disk audit and cleanup — NVMe partition usage breakdown, cleanup candidates (pip/qutebrowser/go/yay caches, build artifacts, pacman cache, coredumps, orphaned packages), du/paccache/journalctl commands, per-directory size analysis, safe vs risky cleanup actions, disk space, storage
+Disk audit and cleanup reference for this Arch Linux system. Covers partition layout, per-directory size breakdown, cleanup candidates ranked by risk, orphaned/reviewable packages, known anomalies, and a command cheat sheet. All sizes are from the most recent audit.
 
-## System layout
+## System Layout
 
-- Single partition: `/dev/nvme1n1p2` (916G, ~8% used)
-- Swap: `/swapfile` (16G, file-based, no zram active despite `zram-generator` being installed)
-- Boot: GRUB, EFI, two kernels (`linux` mainline + `linux-lts`, booted into LTS)
-- RAM: 32G
+The system runs on a single NVMe partition (`/dev/nvme1n1p2`, 916G, roughly 8% used) with a 16G file-based swap at `/swapfile`. No zram is active despite `zram-generator` being installed. Boot uses GRUB with EFI and carries two kernels: `linux` mainline and `linux-lts`, though only LTS is actually booted. The machine has 32G of RAM.
 
-## Home directory (~48G)
+## Home Directory (~48G)
 
 ### Workspace (~37G)
-| Directory | Size | Notes |
-|---|---|---|
-| Qutebrowser/ | 25G | Custom build. `build/` is 14G, `.git/` is 6.3G, `qtwebengine/` is 4.6G |
-| Supcord/ | 5.4G | |
-| Playground/ | 1.8G | |
-| Everything else | <5M combined | Small projects (Utils, Agent) |
 
-**No longer present** (removed since last audit): Polymarketing/, XColor/, PersonalWebsite/
+The Qutebrowser custom build dominates at 25G, split across `build/` (14G), `.git/` (6.3G), and `qtwebengine/` (4.6G). Supcord takes 5.4G, Playground 1.8G, and everything else (Utils, Agent, etc.) is under 5M combined. Previously present directories Polymarketing/, XColor/, and PersonalWebsite/ have been removed since the last audit.
 
-### Dotfiles / hidden dirs (~9G)
-| Directory | Size | Notes |
-|---|---|---|
-| .local/rust/ | 3.8G | rustup toolchains (1.4G) + cargo registry (1012M) |
-| .local/bun/ | 2.8G | bun install cache (2.7G) + global installs (1.6G) + binary (97M) |
-| .local/share/claude/ | 637M | Claude Code versions (3 stored) |
-| .cache/qutebrowser/ | 12K | Browser cache (was cleaned since last audit) |
-| .cache/pip/ | 566M | Downloaded wheels, safe to purge |
-| .cache/yay/ | 151M | AUR build cache |
-| .cache/go-build/ | 136M | Go build cache, rebuilds on demand |
-| .claude/ | 484M | Projects (355M), debug logs (77M), file-history (38M) |
-| .bun/ | 63M | |
-| .config/ | 46M | |
+### Dotfiles and Hidden Directories (~9G)
 
-**No longer present**: `.local/share/qutebrowser/` (removed since last audit)
+Rust tooling under `.local/rust/` accounts for 3.8G (toolchains at 1.4G, cargo registry at 1012M). Bun lives in `.local/bun/` at 2.8G total (install cache 2.7G, global installs 1.6G, binary 97M). Claude Code stores three versions in `.local/share/claude/` totaling 637M. The `.claude/` directory holds 484M across projects (355M), debug logs (77M), and file-history (38M).
 
-## System directories
+Caches: pip at 566M (downloaded wheels, safe to purge), yay at 151M (AUR build cache), go-build at 136M (rebuilds on demand), and qutebrowser at 12K (already cleaned, negligible). Remaining: `.bun/` at 63M, `.config/` at 46M. The `.local/share/qutebrowser/` directory was removed since the last audit.
+
+## System Directories
 
 ### /var (6.3G)
-| Directory | Size | Notes |
-|---|---|---|
-| /var/cache/pacman/pkg/ | 5.0G | Old package versions. `paccache -rk2` or `paccache -rk1` to trim (requires `pacman-contrib`, currently NOT installed) |
-| /var/lib/systemd/coredump/ | 969M | Crash dumps — python segfaults (qutebrowser), QtWebEngine crashes, occasional zsh/test crashes |
-| /var/log/journal/ | 311M | Systemd journal. Can vacuum with `journalctl --vacuum-size=100M` |
-| /var/lib/pacman/ | 30M | Package database, do not touch |
+
+The pacman package cache at `/var/cache/pacman/pkg/` is 5.0G of old package versions, trimmable with `paccache -rk2` or `-rk1` (requires `pacman-contrib`, which is currently NOT installed). Coredumps under `/var/lib/systemd/coredump/` sit at 969M, mostly from Python segfaults in qutebrowser and QtWebEngine crashes. The systemd journal at `/var/log/journal/` is 311M and can be vacuumed. The pacman database at `/var/lib/pacman/` (30M) should never be touched.
 
 ### /usr (4.5G)
-| Directory | Size | Notes |
-|---|---|---|
-| /usr/lib/ | 2.7G | System libraries |
-| /usr/share/ | 1.2G | Shared data, fonts, etc. |
-| /usr/bin/ | 394M | Binaries |
-| /usr/lib/firmware/ | 380M | Hardware firmware blobs |
-| /usr/lib/go/ | 237M | Go standard library (orphaned — nothing depends on it) |
-| /usr/lib/python3.14/ | 146M | Python stdlib |
-| /usr/lib/qt6/ | 56M | Qt6 libraries |
+
+System libraries in `/usr/lib/` take 2.7G, shared data in `/usr/share/` takes 1.2G, binaries in `/usr/bin/` take 394M, and firmware blobs in `/usr/lib/firmware/` take 380M. Notable entries: the Go standard library at `/usr/lib/go/` (237M) is orphaned with nothing depending on it, Python 3.14 stdlib takes 146M, and Qt6 libraries take 56M.
 
 ### /boot (125M)
-- `vmlinuz-linux` + `vmlinuz-linux-lts` (two kernels)
-- `initramfs-linux.img` + `initramfs-linux-lts.img`
-- User boots into LTS; mainline (`linux` 6.18.8) is unused
 
-## Cleanup candidates
+Contains `vmlinuz-linux` + `vmlinuz-linux-lts` and their initramfs images. The user boots into LTS; the mainline kernel (`linux` 6.18.8) is unused.
 
-### Safe / zero-risk (caches that regenerate)
+## Cleanup Candidates
+
+### Safe (zero-risk caches that regenerate)
+
 - `pip cache purge` — 566M
 - `rm -rf ~/.cache/qutebrowser` — 12K (already cleaned, negligible now)
 - `rm -rf ~/.cache/go-build` — 136M
 - `rm -rf ~/.cache/yay` — 151M (rebuilds when needed)
 - `sudo journalctl --vacuum-size=100M` — reclaims ~200M
 
-### Low-risk (build artifacts, rebuild on demand)
+### Low-Risk (build artifacts, rebuild on demand)
+
 - `rm -rf ~/Workspace/Qutebrowser/build/` — 14G
 - `sudo rm -rf /var/lib/systemd/coredump/*` — 969M
-- `sudo paccache -rk2` — keeps last 2 versions, reclaims ~2-3G from pacman cache (requires `pacman-contrib`, currently NOT installed — install with `sudo pacman -S pacman-contrib`)
+- `sudo paccache -rk2` — keeps last 2 versions, reclaims ~2-3G (requires `pacman-contrib`, currently NOT installed; install with `sudo pacman -S pacman-contrib`)
 - `bun pm cache rm` — 2.7G bun cache
 
-### Worth reviewing with user
-- **Old Claude Code versions** (~637M in `.local/share/claude/versions/`) — 3 versions stored (2.1.37, 2.1.38, 2.1.39), probably only need current
-- **Bun global installs** (1.6G) — check what's installed globally
-- **Rust toolchains** — `rustup toolchain list` to check for old/unused toolchains
+### Worth Reviewing with User
+
+- **Old Claude Code versions** (~637M in `.local/share/claude/versions/`) — 3 versions stored (2.1.37, 2.1.38, 2.1.39), probably only the current one is needed
+- **Bun global installs** (1.6G) — check what is installed globally
+- **Rust toolchains** — run `rustup toolchain list` to check for old or unused toolchains
 - **Cargo registry** (1012M) — `cargo cache` can prune old crate versions
 
-### Packages to review
-- **Orphaned packages** (installed as deps, nothing needs them): `ffmpeg, go, minizip, python-jinja, python-pyqt6, python-yaml, re2` — remove with `sudo pacman -Rns $(pacman -Qdtq)` (note: `libxdamage` and `libxslt` are no longer orphaned)
-- **`speech-dispatcher`** (28M) — text-to-speech. NOT running (service disabled, no processes). Has Python bindings in site-packages. Installed because qutebrowser TTS requires it and was nagging about it. DO NOT suggest removing.
-- **`noto-fonts-cjk`** (299M) — CJK fonts, remove if user doesn't read Chinese/Japanese/Korean
-- **`linux`** mainline kernel (144M) — unused, user boots LTS. Could remove if LTS-only is fine
-- **`zram-generator`** (768K) — installed but zram is not active, only swapfile is used. Tiny footprint. User unsure why it's there but not sure about removing it yet.
+## Packages to Review
 
-### Packages confirmed needed (DO NOT suggest removing)
-- **`chromium-widevine`** — needed for Spotify playback in custom qutebrowser build
+Orphaned packages (installed as dependencies, nothing needs them anymore): `ffmpeg, go, minizip, python-jinja, python-pyqt6, python-yaml, re2`. Remove with `sudo pacman -Rns $(pacman -Qdtq)`. Note that `libxdamage` and `libxslt` are no longer orphaned.
+
+Other reviewable packages:
+- **`speech-dispatcher`** (28M) — text-to-speech, NOT running (service disabled, no processes), has Python bindings. Installed because qutebrowser TTS requires it and was nagging about it. DO NOT suggest removing.
+- **`noto-fonts-cjk`** (299M) — CJK fonts, removable if the user does not read Chinese/Japanese/Korean
+- **`linux`** mainline kernel (144M) — unused since the user boots LTS only. Could remove if LTS-only is acceptable.
+- **`zram-generator`** (768K) — installed but zram is not active, only the swapfile is used. Tiny footprint. User is unsure why it is there but not ready to remove it yet.
+
+## Packages Confirmed Needed (DO NOT suggest removing)
+
+- **`chromium-widevine`** — needed for Spotify playback in the custom qutebrowser build
 - **`arch-install-scripts`** — user runs their own Arch installs
 - **`yay-debug`** — user actively uses it
 
-### Anomalies
-- Python (3.14) segfaults regularly — caused by user experimenting with their custom qutebrowser/qtwebengine build. Expected behavior given the dev workflow. Coredumps accumulate over time. (Python 3.13 is no longer installed.)
-- `zram-generator` installed but not functioning (no zram devices active)
-- The 476M QtWebEngine coredump (Feb 2) was a SIGTRAP from a renderer process with client-id=67. Huge because it dumped the full renderer memory (GPU raster threads, V8 context, the works). Normal consequence of hacking on qtwebengine.
+## Known Anomalies
 
-## Commands cheat sheet
+Python 3.14 segfaults regularly due to the user experimenting with their custom qutebrowser/qtwebengine build. This is expected behavior for the dev workflow and causes coredumps to accumulate over time. Python 3.13 is no longer installed.
+
+The `zram-generator` package is installed but not functioning (no zram devices are active).
+
+A 476M QtWebEngine coredump from Feb 2 was a SIGTRAP from a renderer process (client-id=67). It was so large because it dumped the full renderer memory including GPU raster threads and V8 context. This is a normal consequence of hacking on qtwebengine.
+
+## Commands Cheat Sheet
+
 ```bash
-# Check current disk usage
+## Check current disk usage
 df -h /
 du -sh /home/yeyito/* /home/yeyito/.* 2>/dev/null | sort -rh | head -20
 
-# Pacman cache cleanup (keep last N versions) — requires pacman-contrib (not currently installed)
+## Pacman cache cleanup (keep last N versions) — requires pacman-contrib (not currently installed)
 sudo paccache -rk2
 
-# List orphaned packages
+## List orphaned packages
 pacman -Qdtq
 
-# Remove orphaned packages
+## Remove orphaned packages
 sudo pacman -Rns $(pacman -Qdtq)
 
-# Clear coredumps
+## Clear coredumps
 sudo rm -rf /var/lib/systemd/coredump/*
 
-# Limit coredump storage (edit /etc/systemd/coredump.conf)
-# Set: MaxUse=500M or Storage=none
+## Limit coredump storage (edit /etc/systemd/coredump.conf)
+## Set: MaxUse=500M or Storage=none
 
-# Vacuum journal logs
+## Vacuum journal logs
 sudo journalctl --vacuum-size=100M
 
-# Clear pip cache
+## Clear pip cache
 pip cache purge
 
-# Clear cargo build artifacts in a project
+## Clear cargo build artifacts in a project
 cargo clean
 
-# Check rust toolchains
+## Check rust toolchains
 rustup toolchain list
 rustup toolchain remove <name>
 
-# Clear bun cache
+## Clear bun cache
 bun pm cache rm
 ```
 

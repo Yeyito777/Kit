@@ -1,6 +1,6 @@
 <memory-metadata>
 {
-  "frequency": 15,
+  "frequency": 17,
   "last_accessed_session": 0,
   "created_session": 0,
   "appreciation": 0,
@@ -8,14 +8,24 @@
 }
 </memory-metadata>
 
-<memory>
-dmenu suckless dynamic menu launcher — patched fork at ~/Config/dmenu/, config.h colors fonts prompt, vi-mode center border patches, build install (make && sudo make install), code layout dmenu.c drw.c stest.c util.c arg.h, dmenu_run dmenu_path scripts, application launcher, fuzzy picker, no test suite
+<conditional>
+Recall if the user prompt mentions dmenu, suckless, dynamic menu, application launcher, or vi-mode patch.
+</conditional>
 
-# Location
+<fuzzy-match>
+dmenu, suckless, drw.c, config.h, vi-mode, dmenu_run, center patch, border patch
+</fuzzy-match>
+
+<memory>
+Patched fork of suckless dmenu, a dynamic menu and application launcher used as a fuzzy picker.
+
+## Location
+
 - Source: `/home/yeyito/Config/dmenu/`
 - Config: `/home/yeyito/Config/dmenu/config.h`
 
-# Code Organization
+## Code Organization
+
 | File | Purpose |
 |------|---------|
 | `dmenu.c` | Main dmenu source |
@@ -28,26 +38,27 @@ dmenu suckless dynamic menu launcher — patched fork at ~/Config/dmenu/, config
 | `dmenu_run` / `dmenu_path` | Helper scripts for launching programs |
 | `vi-mode.diff` | Vi-mode patch (applied — dmenu starts in normal mode) |
 
-# Patches Applied
+## Patches Applied
+
 - **vi-mode**: dmenu starts in normal mode with vi-style keybindings; patch file kept at `vi-mode.diff`
 - **center**: `-c` option to center dmenu on screen (controlled by `centered` and `min_width` in config.h)
 - **border**: configurable border width and color
 
-# Building
+## Building
+
 ```bash
 cd /home/yeyito/Config/dmenu && make && sudo make install
 ```
-No need for `make clean` — just `make && sudo make install`.
+No need for `make clean` — just `make && sudo make install`. Changes take effect immediately on next invocation; no restart needed.
 
-# Makefile Targets
+## Makefile Targets
+
 `all` (dmenu + stest), `clean`, `dist`, `install`, `uninstall`
 
-# Applying Changes
-Takes effect immediately on next invocation — no restart needed.
+## Notes
 
-# Notes
 - `config.h` shows clang errors when analyzed standalone — expected, it's included during the main build
-- User wants changes built/installed immediately, not left as uncommitted edits
+- Changes should be built and installed immediately, not left as uncommitted edits
 - No test suite — manual testing only
 
 ---

@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# recall — Print only the <memory> content of a memory file
+# Usage: recall <name>.md  or  recall <name>
+set -euo pipefail
+
+AGENT_DIR="${CLAUDE_PROJECT_DIR:-.}"
+
+if [[ $# -ne 1 ]]; then
+  echo "Usage: recall <memory-name>.md" >&2
+  exit 1
+fi
+
+TARGET="$1"
+# Strip leading memory/ if provided
+TARGET="${TARGET#memory/}"
+# Add .md if missing
+[[ "$TARGET" != *.md ]] && TARGET="${TARGET}.md"
+
+MEM_FILE="${AGENT_DIR}/memory/${TARGET}"
+
+if [[ ! -f "$MEM_FILE" ]]; then
+  echo "Error: memory/${TARGET} does not exist" >&2
+  exit 1
+fi
+
+python3 -c "
+import sys
+sys.path.insert(0, '${AGENT_DIR}/src')
+from memory_metadata import get_memory_content
+from pathlib import Path
+print(get_memory_content(Path('${MEM_FILE}')))
+"

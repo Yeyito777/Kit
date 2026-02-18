@@ -1,47 +1,53 @@
 <memory-metadata>
 {
-  "frequency": 17,
-  "last_accessed_session": 0,
+  "frequency": 21,
+  "last_accessed_session": 552,
   "created_session": 0,
   "appreciation": 0,
   "pinned": false
 }
 </memory-metadata>
 
-<memory>
-Claude Code binary inspection — ELF binary location (~/.local/share/claude/versions/), extracting minified JS via strings, safe search method (dump to /tmp first, never pipe directly), BASH_DEFAULT_TIMEOUT_MS/BASH_MAX_TIMEOUT_MS env vars, avoiding event loop crash from stdout flooding
+<conditional>
+Recall if the user prompt mentions inspecting the Claude Code binary, ELF binary, bun compile, strings command on the binary, BASH_DEFAULT_TIMEOUT_MS, BASH_MAX_TIMEOUT_MS, or event loop crash from stdout flooding.
+</conditional>
 
-# Binary Location
+<fuzzy-match>
+claude binary, ELF, bun compile, strings, /tmp/claude_strings.txt, BASH_DEFAULT_TIMEOUT_MS, BASH_MAX_TIMEOUT_MS, timeout env var, minified JS, node event loop, stdout flood, readlink, ~/.local/share/claude, claude versions
+</fuzzy-match>
+
+<memory>
+The Claude Code CLI is an ELF binary — a Node.js app bundled via `bun compile` (confirmed by `__bun` symbols). The JS source inside is minified but not encrypted, so you can extract and read it with `strings`. This is useful for discovering undocumented env vars, understanding internal behavior, and verifying how features actually work.
+
+## Where the binary lives
+
 - Symlink: `~/.local/bin/claude`
 - Actual binary: `~/.local/share/claude/versions/<version>` (e.g. `2.1.33`)
-- Resolve with: `readlink -f $(which claude)`
+- Resolve the real path with: `readlink -f $(which claude)`
 
-# What It Is
-An ELF executable — a Node.js app bundled into a single binary via `bun compile` (confirmed by `__bun` symbols in the binary). The JavaScript source is **minified but not encrypted**, so it's fully readable via `strings`.
+## How to safely inspect it
 
-# How to Inspect
-
-**WARNING: Never pipe `strings` on the binary directly in a Bash tool call.** The binary is ~200+ MB of mostly printable content (minified JS). Piping `strings` through `grep` produces a massive stdout stream that starves Claude Code's single-threaded Node.js event loop — the Ink/React TUI freezes, CPU pegs one core (~11%), and the app crashes. Always dump to a temp file first and search that:
+The binary is ~200+ MB of mostly printable content (minified JS). You must dump `strings` output to a temp file first, then search the file. Never pipe `strings` directly through `grep` in a Bash tool call — the massive stdout stream starves Claude Code's single-threaded Node.js event loop, the Ink/React TUI freezes, CPU pegs one core (~11%), and the app crashes.
 
 ```bash
-# SAFE: dump to file first, then search
+## SAFE: dump to file first, then search
 strings "$(readlink -f "$(which claude)")" > /tmp/claude_strings.txt
 grep "SEARCH_TERM" /tmp/claude_strings.txt
 
-# SAFE: surrounding context
+## SAFE: get surrounding context for a match
 grep -oP '.{0,200}SEARCH_TERM.{0,200}' /tmp/claude_strings.txt
 ```
 
-**Never do this** (will crash Claude Code):
 ```bash
-# UNSAFE: massive pipe floods the event loop
+## UNSAFE — will crash Claude Code:
 strings "$(readlink -f "$(which claude)")" | grep "SEARCH_TERM"
 ```
 
 The minified JS uses short variable names (`H`, `$`, `A`, `L`) but function logic, string literals, env var names, and constants are all plaintext and readable.
 
-# Example: Bash Timeout Env Vars
-Found by searching for `BASH_MAX_TIMEOUT_MS`:
+## Example discovery: Bash timeout env vars
+
+By searching for `BASH_MAX_TIMEOUT_MS` in the dumped strings, the following deobfuscated logic was recovered:
 
 ```js
 // BASH_DEFAULT_TIMEOUT_MS — deobfuscated
@@ -66,11 +72,11 @@ function getMaxTimeout(env) {
 }
 ```
 
-Key findings:
-- Neither env var has an upper bound enforced in code
-- `600000` (10 min) is only the fallback max when env var is unset, not a cap
-- Max is floored to never be lower than default, that's the only constraint
-- Values like `3600000` (1h) would work fine
+Key findings from this:
+- Neither env var has an upper bound enforced in code — you can set them arbitrarily high.
+- `600000` (10 min) is only the fallback max when the env var is unset, not a hard cap.
+- The max is floored to never be lower than the default; that's the only constraint.
+- Values like `3600000` (1 hour) work fine.
 
 ---
 Update this memory when the information above becomes outdated.

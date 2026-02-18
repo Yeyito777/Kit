@@ -119,17 +119,28 @@ def ensure_file(mem_file: Path, current_session: int = 0):
 
 
 def get_description(mem_file: Path) -> str:
-    """Get the description (first line of <memory> content) from a memory file."""
+    """Get the description from a memory file.
+
+    Returns <conditional> content if present, otherwise falls back to
+    the first line of <memory> content.
+    """
     text = mem_file.read_text()
 
-    # Try to extract from <memory> tag
+    # Primary: extract from <conditional> tag
+    cond_match = re.search(r"<conditional>\n?(.*?)\n?</conditional>", text, re.DOTALL)
+    if cond_match:
+        cond = cond_match.group(1).strip()
+        if cond:
+            return cond
+
+    # Fallback: first line of <memory> tag
     mem_match = re.search(r"<memory>\n(.*?)(?:\n|</memory>)", text, re.DOTALL)
     if mem_match:
         first_line = mem_match.group(1).split("\n")[0].strip()
         if first_line:
             return first_line
 
-    # Fallback: skip metadata block, get first non-empty line
+    # Last resort: skip metadata block, get first non-empty line
     m = _META_RE.match(text)
     rest = text[m.end():].strip() if m else text.strip()
     for line in rest.split("\n"):
@@ -138,6 +149,36 @@ def get_description(mem_file: Path) -> str:
             return line
 
     return mem_file.stem
+
+
+def get_fuzzy_match(mem_file: Path) -> list[str]:
+    """Get the fuzzy-match keywords from a memory file.
+
+    Returns a list of comma-separated terms from the <fuzzy-match> tag.
+    Returns empty list if tag is missing.
+    """
+    text = mem_file.read_text()
+    fm_match = re.search(r"<fuzzy-match>\n?(.*?)\n?</fuzzy-match>", text, re.DOTALL)
+    if fm_match:
+        raw = fm_match.group(1).strip()
+        if raw:
+            return [t.strip().lower() for t in raw.split(",") if t.strip()]
+    return []
+
+
+def get_memory_content(mem_file: Path) -> str:
+    """Get only the content inside <memory>...</memory> tags.
+
+    Returns the raw text between the tags, stripped of leading/trailing
+    whitespace. Returns the full file content as fallback if no tags found.
+    """
+    text = mem_file.read_text()
+    mem_match = re.search(r"<memory>\n?(.*?)\n?</memory>", text, re.DOTALL)
+    if mem_match:
+        return mem_match.group(1).strip()
+    # No <memory> tags — return everything after metadata block
+    m = _META_RE.match(text)
+    return text[m.end():].strip() if m else text.strip()
 
 
 # --- CLI interface for use from bash scripts ---

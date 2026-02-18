@@ -1,47 +1,63 @@
 <memory-metadata>
 {
-  "frequency": 3,
-  "last_accessed_session": 489,
+  "frequency": 4,
+  "last_accessed_session": 0,
   "created_session": 406,
   "appreciation": 0,
   "pinned": false
 }
 </memory-metadata>
 
+<conditional>
+Recall if the user prompt mentions SSH, remote access, kitsune, port forwarding, DDNS, fail2ban, or sshd hardening.
+</conditional>
+
+<fuzzy-match>
+ssh, kitsune, sshd, fail2ban, port forwarding, ddns, dnsimple, 48222, ed25519
+</fuzzy-match>
+
 <memory>
-SSH remote access setup — key-based auth, port forwarding, fail2ban, sshd hardening, remote machine 192.168.0.100 whale kitsune, public IP dynamic via DHCP, kitsune.yeyito.dev DDNS via DNSimple, port 48222, ~/.ssh/config aliases kitsune kitsune-local, ed25519 key, no password auth
+This covers the full SSH remote access setup for connecting to the remote machine "kitsune" — both on the local network and over the internet. It includes key-based authentication, sshd hardening, fail2ban, port forwarding through the router, and a DDNS system that keeps a public hostname pointed at a dynamic IP.
 
-## Machines
+## The machines involved
 
-- **Local (this machine):** yeyito's daily driver
-- **Remote:** 192.168.0.100 (LAN), Arch Linux with systemd
-- **Router:** Arris, Cable Onda ISP, dynamic IP via DHCP
+- **Local (this machine):** yeyito's daily driver, where SSH connections originate.
+- **Remote (kitsune):** reachable at `192.168.0.100` on the LAN. Runs Arch Linux with systemd.
+- **Router:** Arris, through Cable Onda ISP. The public IP is dynamic (assigned via DHCP), which is why DDNS is needed.
 
-## SSH Key
+## SSH key
 
-- Type: ed25519
-- Private: `~/.ssh/id_ed25519`
-- Public: `~/.ssh/id_ed25519.pub`
+A single ed25519 keypair is used for authentication (password auth is disabled on the remote):
+
+- Private key: `~/.ssh/id_ed25519`
+- Public key: `~/.ssh/id_ed25519.pub`
 - Comment: `yeyito@local`
 
-## SSH Config (`~/.ssh/config`)
+## SSH config (`~/.ssh/config`)
+
+Two host aliases are configured — one for LAN access and one for internet access. The internet alias uses the DDNS hostname and the non-standard port that the router forwards:
 
 ```
-# Local network
+## Local network
 Host kitsune-local
     HostName 192.168.0.100
     User yeyito
 
-# Over the internet
+## Over the internet
 Host kitsune
     HostName kitsune.yeyito.dev
     User yeyito
     Port 48222
 ```
 
-## Remote Machine Hardening
+## Remote machine hardening
+
+The remote machine is locked down in two layers: sshd configuration and fail2ban.
 
 ### sshd drop-in: `/etc/ssh/sshd_config.d/00-hardening.conf`
+
+This disables password auth entirely and restricts access to a single user:
+
 ```
 PasswordAuthentication no
 PermitRootLogin no
@@ -51,10 +67,13 @@ PubkeyAuthentication yes
 PermitEmptyPasswords no
 ```
 
-- Original config backed up at `/etc/ssh/sshd_config.bak`
-- Other drop-ins: `20-systemd-userdb.conf`, `99-archlinux.conf` (Arch defaults: KbdInteractiveAuthentication no, UsePAM yes)
+- The original config is backed up at `/etc/ssh/sshd_config.bak`.
+- Other drop-ins exist: `20-systemd-userdb.conf` and `99-archlinux.conf` (Arch defaults that set `KbdInteractiveAuthentication no` and `UsePAM yes`).
 
 ### fail2ban: `/etc/fail2ban/jail.local`
+
+Bans IPs that fail authentication repeatedly, adding a second line of defense on top of key-only auth:
+
 ```
 [DEFAULT]
 bantime = 1h
@@ -66,21 +85,22 @@ enabled = true
 backend = systemd
 ```
 
-- Enabled and running via systemd
+fail2ban is enabled and running via systemd.
 
-## Port Forwarding (Router)
+## Port forwarding (router)
 
-- External `48222` (TCP) → `192.168.0.100:22`
+The router forwards external port `48222` (TCP) to `192.168.0.100:22`. This is the non-standard port used by the `kitsune` SSH alias to reach sshd on the remote machine from the internet.
 
 ## Dynamic DNS (DNSimple)
 
-- Domain: `yeyito.dev` (A record ID: 73086845, TTL: 300s)
-- ISP assigns dynamic IP via DHCP — DDNS keeps the A record updated
-- Script: `/home/yeyito/Workspace/DNSimple-config/update-dns.sh` on remote machine
-- Systemd timer: `dnsimple-ddns.timer` runs every 5 minutes
-- GitHub repo: `Yeyito777/DNSimple-config` (private)
-- Env vars loaded from `/home/yeyito/Documents/Sensitive/keys.sh` on remote
-- Zone had to be manually activated via API (`PUT /v2/{id}/zones/yeyito.dev/activation`)
+Because the ISP assigns a dynamic public IP via DHCP, a DDNS system keeps the `kitsune.yeyito.dev` A record updated so the hostname always resolves to the current IP.
+
+- **Domain:** `yeyito.dev` (A record ID: `73086845`, TTL: 300s)
+- **Update script:** `/home/yeyito/Workspace/DNSimple-config/update-dns.sh` on the remote machine
+- **Systemd timer:** `dnsimple-ddns.timer` runs every 5 minutes to check and update the record
+- **Source repo:** `Yeyito777/DNSimple-config` (private GitHub repo)
+- **Credentials:** env vars loaded from `/home/yeyito/Documents/Sensitive/keys.sh` on the remote
+- **Note:** the zone had to be manually activated via the API (`PUT /v2/{id}/zones/yeyito.dev/activation`)
 
 ## Updating this memory
 If the DDNS setup changes (new record ID, different domain), update the Dynamic DNS section. If additional hardening is added (e.g. changing the SSH port on the server itself, adding more AllowUsers), update the sshd section. If the DNSimple-config repo moves or the script changes, update the paths.

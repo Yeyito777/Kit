@@ -1,0 +1,451 @@
+# Recall Benchmark Results
+# Date: 2026-02-18T09:58:11-05:00
+# Tests: 24
+# Presearch: on
+
+[summary]
+total_tests=24
+perfect=14 (58%)
+overrecall=9 (37%)
+underrecall=1 (4%)
+total_memories_overrecalled=14
+total_memories_underrecalled=1
+total_misrecalled=15
+
+[tests]
+
+--- bench-001.bench ---
+I'm trying to debug why my forgetting hook isn't triggering at the right session interval. I set session-counter to 400 and last-forgetting-session to 0, but it seems like the values are getting corrupted. Can you walk me through how to manually test this in an isolated environment?
+Presearch (5/27):
+  memory/automatic-memory-recall-system.md
+  memory/manual-testing-agent-hooks.md
+  memory/modifying-agent-src.md
+  memory/regression-tests-agent.md
+  memory/user-keyboard-configuration.md
+Expected (2):
+  memory/manual-testing-agent-hooks.md
+  memory/automatic-memory-recall-system.md
+Recalled (2):
+  memory/automatic-memory-recall-system.md
+  memory/manual-testing-agent-hooks.md
+Result: PERFECT
+
+--- bench-002.bench ---
+I'm trying to manually test my forgetting-memories hook but it keeps failing silently. I'm running it with `echo '{"test": true}' | bash src/hooks/forgetting-memories.sh` and setting CLAUDE_PROJECT_DIR to my test clone. Any idea what I'm doing wrong?
+Presearch (8/27):
+  memory/automatic-memory-recall-system.md
+  memory/claude-code-binary-inspection.md
+  memory/clone-to-disk-script.md
+  memory/disk-audit-cleanup-guide.md
+  memory/manual-testing-agent-hooks.md
+  memory/modifying-agent-src.md
+  memory/recall-benchmark.md
+  memory/regression-tests-agent.md
+Expected (1):
+  memory/manual-testing-agent-hooks.md
+Recalled (2):
+  memory/manual-testing-agent-hooks.md
+  memory/automatic-memory-recall-system.md
+Result: OVERRECALL
+Extra (1):
+  memory/automatic-memory-recall-system.md
+
+--- bench-003.bench ---
+I want to add a new git alias called `lg` for a pretty log format. Where's my git config again? Also, can you remind me how to commit changes across all the submodule levels in my qutebrowser project?
+Presearch (9/27):
+  memory/qutebrowser-runtime.md
+  memory/qutebrowser.md
+  memory/suckless-dmenu.md
+  memory/suckless-dwm.md
+  memory/suckless-st.md
+  memory/swap-file-configuration.md
+  memory/user-git-config-location.md
+  memory/user-keyboard-configuration.md
+  memory/user-terminal-color-scheme.md
+Expected (2):
+  memory/user-git-config-location.md
+  memory/qutebrowser.md
+Recalled (2):
+  memory/user-git-config-location.md
+  memory/qutebrowser.md
+Result: PERFECT
+
+--- bench-004.bench ---
+I want to add a new git alias called `lg` for a pretty log format. Also, can you remind me where my git config actually lives? I always forget since I moved it from the default location.
+Presearch (9/27):
+  memory/automatic-memory-recall-system.md
+  memory/manual-testing-agent-hooks.md
+  memory/suckless-dmenu.md
+  memory/suckless-dwm.md
+  memory/suckless-st.md
+  memory/swap-file-configuration.md
+  memory/user-git-config-location.md
+  memory/user-keyboard-configuration.md
+  memory/user-terminal-color-scheme.md
+Expected (1):
+  memory/user-git-config-location.md
+Recalled (1):
+  memory/user-git-config-location.md
+Result: PERFECT
+
+--- bench-005.bench ---
+I'm running low on disk space and my builds keep getting OOM killed. Can you remind me what cleanup options I have and also check if my swap is set up right?
+Presearch (3/27):
+  memory/clone-to-disk-script.md
+  memory/disk-audit-cleanup-guide.md
+  memory/swap-file-configuration.md
+Expected (2):
+  memory/disk-audit-cleanup-guide.md
+  memory/swap-file-configuration.md
+Recalled (2):
+  memory/disk-audit-cleanup-guide.md
+  memory/swap-file-configuration.md
+Result: PERFECT
+
+--- bench-006.bench ---
+I want to add a new hook that runs every 150 sessions. Before I start coding, can you walk me through how I should test it? I want to make sure I cover both automated and manual testing, and also add a benchmark case to verify recall works with the new hook's memories.
+Presearch (5/27):
+  memory/automatic-memory-recall-system.md
+  memory/manual-testing-agent-hooks.md
+  memory/modifying-agent-src.md
+  memory/recall-benchmark.md
+  memory/regression-tests-agent.md
+Expected (3):
+  memory/regression-tests-agent.md
+  memory/manual-testing-agent-hooks.md
+  memory/recall-benchmark.md
+Recalled (4):
+  memory/automatic-memory-recall-system.md
+  memory/manual-testing-agent-hooks.md
+  memory/recall-benchmark.md
+  memory/regression-tests-agent.md
+Result: OVERRECALL
+Extra (1):
+  memory/automatic-memory-recall-system.md
+
+--- bench-007.bench ---
+I want to change the forgetting schedule so it runs every 100 sessions instead of 200. Also, can you remind me how the scoring formula works for deciding which memories to archive?
+Presearch (3/27):
+  memory/automatic-memory-recall-system.md
+  memory/manual-testing-agent-hooks.md
+  memory/watchdog-shutdown-message.md
+Expected (1):
+  memory/automatic-memory-recall-system.md
+Recalled (1):
+  memory/automatic-memory-recall-system.md
+Result: PERFECT
+
+--- bench-008.bench ---
+I want to add a new git alias called `lg` for a pretty log format. Also, can you remind me where my git config actually lives? I always forget since I moved it from the default location.
+Presearch (9/27):
+  memory/automatic-memory-recall-system.md
+  memory/manual-testing-agent-hooks.md
+  memory/suckless-dmenu.md
+  memory/suckless-dwm.md
+  memory/suckless-st.md
+  memory/swap-file-configuration.md
+  memory/user-git-config-location.md
+  memory/user-keyboard-configuration.md
+  memory/user-terminal-color-scheme.md
+Expected (1):
+  memory/user-git-config-location.md
+Recalled (1):
+  memory/user-git-config-location.md
+Result: PERFECT
+
+--- bench-009.bench ---
+I'm working on my st terminal fork and I have a long-running `make test` that sometimes gets killed before finishing. Is there a way to increase the bash command timeout so it doesn't get cut off?
+Presearch (10/27):
+  memory/claude-code-binary-inspection.md
+  memory/manual-testing-agent-hooks.md
+  memory/monitor-brightness-control.md
+  memory/regression-tests-agent.md
+  memory/runtime-directory.md
+  memory/st-notify-system.md
+  memory/suckless-st.md
+  memory/swap-file-configuration.md
+  memory/user-terminal-aesthetics.md
+  memory/user-terminal-color-scheme.md
+Expected (1):
+  memory/suckless-st.md
+Recalled (2):
+  memory/claude-code-binary-inspection.md
+  memory/suckless-st.md
+Result: OVERRECALL
+Extra (1):
+  memory/claude-code-binary-inspection.md
+
+--- bench-010.bench ---
+I want to add a new dmenu script that lets me pick from my open terminal windows and jump to them. It should show the CWD of each st terminal. Where does st expose the working directory, and how do I wire up the keybinding in dwm?
+Presearch (11/27):
+  memory/clone-to-disk-script.md
+  memory/dmenu-usage-and-scripting.md
+  memory/modifying-agent-src.md
+  memory/monitor-brightness-control.md
+  memory/runtime-directory.md
+  memory/st-notify-system.md
+  memory/suckless-dmenu.md
+  memory/suckless-dwm.md
+  memory/suckless-st.md
+  memory/user-terminal-aesthetics.md
+  memory/user-terminal-color-scheme.md
+Expected (3):
+  memory/dmenu-usage-and-scripting.md
+  memory/suckless-st.md
+  memory/suckless-dwm.md
+Recalled (5):
+  memory/dmenu-usage-and-scripting.md
+  memory/suckless-dmenu.md
+  memory/suckless-dwm.md
+  memory/suckless-st.md
+  memory/runtime-directory.md
+Result: OVERRECALL
+Extra (2):
+  memory/suckless-dmenu.md
+  memory/runtime-directory.md
+
+--- bench-011.bench ---
+My Claude Code keeps timing out on long-running bash commands. Is there a way to increase the timeout limit? I've heard there might be env vars for this but I'm not sure what the defaults are or if there's a maximum cap.
+Presearch (4/27):
+  memory/claude-code-binary-inspection.md
+  memory/manual-testing-agent-hooks.md
+  memory/regression-tests-agent.md
+  memory/user-terminal-color-scheme.md
+Expected (1):
+  memory/claude-code-binary-inspection.md
+Recalled (1):
+  memory/claude-code-binary-inspection.md
+Result: PERFECT
+
+--- bench-012.bench ---
+I'm working on my st terminal config and want to add a new keybinding that toggles between my current ocean theme and a high-contrast mode. Where are my color definitions and how does st handle key events — specifically, can I hook into something similar to how right shift is already handled?
+Presearch (16/27):
+  memory/automatic-memory-recall-system.md
+  memory/dmenu-usage-and-scripting.md
+  memory/manual-testing-agent-hooks.md
+  memory/modifying-agent-src.md
+  memory/qutebrowser-runtime.md
+  memory/regression-tests-agent.md
+  memory/runtime-directory.md
+  memory/st-notify-system.md
+  memory/suckless-dmenu.md
+  memory/suckless-dwm.md
+  memory/suckless-st.md
+  memory/swap-file-configuration.md
+  memory/user-git-config-location.md
+  memory/user-keyboard-configuration.md
+  memory/user-terminal-aesthetics.md
+  memory/user-terminal-color-scheme.md
+Expected (2):
+  memory/user-terminal-color-scheme.md
+  memory/user-keyboard-configuration.md
+Recalled (3):
+  memory/suckless-st.md
+  memory/user-terminal-color-scheme.md
+  memory/user-keyboard-configuration.md
+Result: OVERRECALL
+Extra (1):
+  memory/suckless-st.md
+
+--- bench-013.bench ---
+I'm adding a new hook script to my agent setup, it should hook at the start of a claude conversation, that should trigger when I open a Supcord workspace session. Should tell the agent something like: opened supcord. Where do I need to register it and what files should I update to keep everything in sync?
+Presearch (10/27):
+  memory/about-user-todo-organization.md
+  memory/automatic-memory-recall-system.md
+  memory/claude-code-binary-inspection.md
+  memory/clone-to-disk-script.md
+  memory/dmenu-usage-and-scripting.md
+  memory/manual-testing-agent-hooks.md
+  memory/modifying-agent-src.md
+  memory/monitor-brightness-control.md
+  memory/regression-tests-agent.md
+  memory/supcord-project.md
+Expected (2):
+  memory/modifying-agent-src.md
+  memory/supcord-project.md
+Recalled (5):
+  memory/automatic-memory-recall-system.md
+  memory/modifying-agent-src.md
+  memory/manual-testing-agent-hooks.md
+  memory/regression-tests-agent.md
+  memory/supcord-project.md
+Result: OVERRECALL
+Extra (3):
+  memory/automatic-memory-recall-system.md
+  memory/manual-testing-agent-hooks.md
+  memory/regression-tests-agent.md
+
+--- bench-014.bench ---
+I want to add a new strength level called "tangential" to the autogenerate script. What's the current mapping for the built-in strength values, and where would I need to make changes?
+Presearch (5/27):
+  memory/clone-to-disk-script.md
+  memory/dmenu-usage-and-scripting.md
+  memory/modifying-agent-src.md
+  memory/monitor-brightness-control.md
+  memory/recall-benchmark.md
+Expected (1):
+  memory/recall-benchmark.md
+Recalled (1):
+  memory/recall-benchmark.md
+Result: PERFECT
+
+--- bench-015.bench ---
+I want to add a feature to st where it saves and restores the current git branch name across dwm restarts. The idea is that st would read the git branch from the cwd and persist it alongside the scrollback and cwd data. Where should I hook into the existing persist code, and do I need to update dwm's persist mode too?
+Presearch (13/27):
+  memory/automatic-memory-recall-system.md
+  memory/claude-code-binary-inspection.md
+  memory/dmenu-usage-and-scripting.md
+  memory/manual-testing-agent-hooks.md
+  memory/modifying-agent-src.md
+  memory/regression-tests-agent.md
+  memory/runtime-directory.md
+  memory/st-notify-system.md
+  memory/suckless-dmenu.md
+  memory/suckless-dwm.md
+  memory/suckless-st.md
+  memory/user-git-config-location.md
+  memory/user-terminal-color-scheme.md
+Expected (2):
+  memory/suckless-st.md
+  memory/suckless-dwm.md
+Recalled (3):
+  memory/runtime-directory.md
+  memory/suckless-st.md
+  memory/suckless-dwm.md
+Result: OVERRECALL
+Extra (1):
+  memory/runtime-directory.md
+
+--- bench-016.bench ---
+I want to change the forgetting schedule to run every 100 sessions instead of 200. Also, can you remind me how to rebuild dmenu after I tweak the border width in config.h?
+Presearch (11/27):
+  memory/automatic-memory-recall-system.md
+  memory/dmenu-usage-and-scripting.md
+  memory/manual-testing-agent-hooks.md
+  memory/suckless-dmenu.md
+  memory/suckless-dwm.md
+  memory/suckless-st.md
+  memory/swap-file-configuration.md
+  memory/user-git-config-location.md
+  memory/user-keyboard-configuration.md
+  memory/user-terminal-color-scheme.md
+  memory/watchdog-shutdown-message.md
+Expected (2):
+  memory/suckless-dmenu.md
+  memory/automatic-memory-recall-system.md
+Recalled (2):
+  memory/automatic-memory-recall-system.md
+  memory/suckless-dmenu.md
+Result: PERFECT
+
+--- bench-017.bench ---
+Hey, can you add "finish API refactor" to my todo?
+Presearch (2/27):
+  memory/about-user-todo-organization.md
+  memory/dnsimple-api-usage.md
+Expected (1):
+  memory/about-user-todo-organization.md
+Recalled (1):
+  memory/about-user-todo-organization.md
+Result: PERFECT
+
+--- bench-018.bench ---
+I want to add a new notification style to st that flashes red when an SSH session disconnects. Before I start coding, can you remind me how the notification system works and how to send a styled notification from a shell script? Also, I need to make sure my Right Shift autosuggestion binding still works after I rebuild.
+Presearch (14/27):
+  memory/automatic-memory-recall-system.md
+  memory/clone-to-disk-script.md
+  memory/disk-audit-cleanup-guide.md
+  memory/dmenu-usage-and-scripting.md
+  memory/modifying-agent-src.md
+  memory/monitor-brightness-control.md
+  memory/qutebrowser.md
+  memory/runtime-directory.md
+  memory/ssh-remote-access-setup.md
+  memory/st-notify-system.md
+  memory/suckless-st.md
+  memory/user-git-config-location.md
+  memory/user-terminal-color-scheme.md
+  memory/watchdog-shutdown-message.md
+Expected (3):
+  memory/suckless-st.md
+  memory/st-notify-system.md
+  memory/user-keyboard-configuration.md
+Recalled (4):
+  memory/st-notify-system.md
+  memory/suckless-st.md
+  memory/user-terminal-color-scheme.md
+  memory/ssh-remote-access-setup.md
+Result: UNDERRECALL
+Missing (1):
+  memory/user-keyboard-configuration.md
+Extra (2):
+  memory/user-terminal-color-scheme.md
+  memory/ssh-remote-access-setup.md
+
+--- bench-019.bench ---
+I'm about to do a big Chromium build for my qutebrowser project and I'm worried about running out of memory. Can you remind me how my swap is set up and also check if there's anything I can clean up to free disk space before the build? Also, will the Supcord cargo build artifacts add to the problem?
+Presearch (7/27):
+  memory/automatic-memory-recall-system.md
+  memory/clone-to-disk-script.md
+  memory/disk-audit-cleanup-guide.md
+  memory/qutebrowser-runtime.md
+  memory/qutebrowser.md
+  memory/supcord-project.md
+  memory/swap-file-configuration.md
+Expected (3):
+  memory/swap-file-configuration.md
+  memory/disk-audit-cleanup-guide.md
+  memory/supcord-project.md
+Recalled (4):
+  memory/swap-file-configuration.md
+  memory/disk-audit-cleanup-guide.md
+  memory/qutebrowser.md
+  memory/supcord-project.md
+Result: OVERRECALL
+Extra (1):
+  memory/qutebrowser.md
+
+--- bench-020.bench ---
+I'm trying to add a new web setting to my qutebrowser fork that controls whether autoplay is allowed. I know there are a bunch of files I need to touch across the chromium and Qt layers. Can you walk me through the process? The source is in ~/Workspace/Qutebrowser/
+Presearch (3/27):
+  memory/qutebrowser-runtime.md
+  memory/qutebrowser.md
+  memory/supcord-project.md
+Expected (1):
+  memory/qutebrowser.md
+Recalled (2):
+  memory/qutebrowser-runtime.md
+  memory/qutebrowser.md
+Result: OVERRECALL
+Extra (1):
+  memory/qutebrowser-runtime.md
+
+--- norecall-001.bench ---
+ok cool, now handle the other cases we talked about
+Presearch (0/27):
+Expected (0):
+Recalled (0):
+Result: PERFECT
+
+--- norecall-002.bench ---
+Actually, scratch that last part and go back to what you had before.
+Presearch (0/27):
+Expected (0):
+Recalled (0):
+Result: PERFECT
+
+--- norecall-003.bench ---
+alright, now handle the other cases
+Presearch (0/27):
+Expected (0):
+Recalled (0):
+Result: PERFECT
+
+--- norecall-004.bench ---
+No wait, I meant the other function, not that one.
+Presearch (2/27):
+  memory/clone-to-disk-script.md
+  memory/dnsimple-api-usage.md
+Expected (0):
+Recalled (0):
+Result: PERFECT

@@ -6,7 +6,13 @@ A `UserPromptSubmit` hook runs on every user message. It surfaces relevant memor
 ```
 Relevant memories: memory/foo.md memory/bar.md
 ```
-**IMPORTANT — your FIRST action after seeing recalled memories must be to Read the ones relevant to the task.** Do this BEFORE any other work (reading reference files, writing code, etc.). These memories contain critical context about the user's setup, preferences, and workflows that directly affect how you should approach the task.
+
+**IMPORTANT — your FIRST action after seeing recalled memories must be to use the `recall` bash command to load the ones relevant to the task. (This command is in your path you can call it directly)** Do this BEFORE any other work (reading reference files, writing code, etc.). The recall skill returns only the `<memory>` content, keeping your context clean. These memories contain critical context about the user's setup, preferences, and workflows that directly affect how you should approach the task.
+
+Usage:
+```bash
+recall memory/<memory-filename>
+```
 
 # Creating memories
 If the user requests you to create a memory you must follow the following guideline:

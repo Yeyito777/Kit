@@ -1,24 +1,30 @@
 <memory-metadata>
 {
-  "frequency": 62,
-  "last_accessed_session": 516,
+  "frequency": 65,
+  "last_accessed_session": 542,
   "created_session": 0,
   "appreciation": 0,
   "pinned": true
 }
 </memory-metadata>
 
+<conditional>
+Recall if the user prompt mentions qutebrowser, the custom QtWebEngine or Chromium build, submodule workflow, tab runtime, element shaders, hinting, or ladder-commit.
+</conditional>
+
+<fuzzy-match>
+qutebrowser, qute, browser, qtwebengine, webengine, chromium, blink, pyqt6, sip bindings, submodule, ladder-commit, tab runtime, tabruntime, element shader, hinting, native elements, mojom, yeyito-browser, yeyitowebengine
+</fuzzy-match>
+
 <memory>
-Qutebrowser fork with custom QtWebEngine/Chromium build — source at ~/Workspace/Qutebrowser/, submodule chain (qtwebengine, chromium, pyqt6-webengine SIP bindings), install.sh build workflow, ladder-commit, reference docs (element shader, web settings, hinting, native elements, dwm-persist, tab-runtime), dwm persist integration (_DWM_SAVE_ARGV), tab runtime manager (filesystem IPC for live tab state), pytest testing. For runtime config see qutebrowser-runtime.md
+The user's qutebrowser is a deep fork — not vanilla. It includes a custom build of QtWebEngine all the way down to Chromium/Blink source, so changes can happen at any level from Python UI code to the browser engine itself.
 
-# Location
-- Source: `/home/yeyito/Workspace/Qutebrowser/`
-- Project-level instructions: `/home/yeyito/Workspace/Qutebrowser/CLAUDE.md` (read this when working in qutebrowser)
+The source lives at `~/Workspace/Qutebrowser/`. Before doing any work there, read the project-level instructions at `Qutebrowser/CLAUDE.md`. For runtime configuration (basedir, profiles, greasemonkey), see `memory/qutebrowser-runtime.md`.
 
-# What It Is
-A fork of qutebrowser that includes a **custom build of QtWebEngine** (Chromium/Blink), allowing deep browser engine modifications. This is not a vanilla qutebrowser — it has a full submodule chain down to Chromium source.
+## Project structure
 
-# Submodule Structure
+Three nested repos form a submodule chain:
+
 ```
 Qutebrowser/                     ← main repo (Yeyito777/yeyito-browser)
 ├── qtwebengine/                 ← submodule (Yeyito777/yeyitowebengine)
@@ -28,7 +34,8 @@ Qutebrowser/                     ← main repo (Yeyito777/yeyito-browser)
     └── sip/QtWebEngineCore/     ← SIP bindings (includes custom enum values)
 ```
 
-# Code Organization (Python/qutebrowser side)
+On the Python side, the main directories are:
+
 | Directory | Purpose |
 |-----------|---------|
 | `qutebrowser/browser/` | Browser core (tabs, webengine integration) |
@@ -40,51 +47,59 @@ Qutebrowser/                     ← main repo (Yeyito777/yeyito-browser)
 | `qutebrowser/utils/` | Utilities |
 | `tests/` | Test suite |
 
-# Reference Docs
-Located in `reference/` directory — read these before touching related features:
+## Reference docs
+
+The `reference/` directory has detailed docs for specific subsystems. Read the relevant one before touching a feature:
+
 - `element-shader.md` — element shader, colors, CSS transforms
 - `build.md` — build process, directory structure, SIP bindings (Phase 4)
 - `submodules.md` — git submodule workflow
-- `adding-a-web-setting.md` — new settings, WebAttribute, mojom, IPC, preferences (10 touch points across 9 files)
+- `adding-a-web-setting.md` — adding a new setting touches 10 points across 9 files (WebAttribute, mojom, IPC, preferences)
 - `dependencies.md` — system packages, what is built vs from system
 - `pdfjs-polyfills.md` — PDF.js patching, polyfills
 - `directories.md` — all directories qutebrowser uses on disk
 - `hinting.md` — hinting system internals (user input → element selection → action)
 - `javascript-hinting.md` — JavaScript hint target system
 - `native-elements.md` — NativeTheme, Chromium native form controls (checkboxes, radios, etc.), Skia rendering
-- `dwm-persist.md` — dwm persist mode integration, `_DWM_SAVE_ARGV` X11 property registration from `showEvent()`
-- `tab-runtime.md` — tab runtime manager, filesystem IPC for live tab state, signal wiring, directory layout
+- `dwm-persist.md` — dwm persist integration, `_DWM_SAVE_ARGV` X11 property set from `showEvent()`
+- `tab-runtime.md` — tab runtime manager, filesystem IPC for live tab state, signal wiring
 
-# Building
-| Command | Purpose |
-|---------|---------|
-| `./install.sh` | Build (skips if commit unchanged) |
-| `./install.sh --dirty` | Force rebuild with uncommitted changes |
-| `~/.local/bin/qutebrowser` | Launch with custom QtWebEngine |
-| `./scripts/ladder-commit "msg"` | Commit through all 3 submodule levels |
-| `./scripts/ladder-commit "msg" --push` | Commit and push through all 3 levels |
+## Building and installing
 
-### Build Times
-- No changes: instant (skipped)
-- Single .cc file: 1-5 minutes
-- Full rebuild: ~2 hours
-- SIP bindings rebuild: ~30-60 seconds
+After making code changes, always install so the user can test right away:
 
-# Testing
+| Command | When to use |
+|---------|-------------|
+| `./install.sh` | Python-only changes (skips build if commit unchanged) |
+| `./install.sh --dirty` | C++/Blink/QtWebEngine changes (forces rebuild even with uncommitted changes) |
+
+Launch the custom build with `~/.local/bin/qutebrowser`.
+
+To commit across the submodule chain, use `ladder-commit` — it walks all three repo levels:
+
+```bash
+./scripts/ladder-commit "msg"          # commit only
+./scripts/ladder-commit "msg" --push   # commit and push all levels
+```
+
+Build times vary widely: instant if nothing changed, 1–5 min for a single .cc file, ~30–60s for SIP bindings, ~2 hours for a full rebuild.
+
+## Testing
+
 ```bash
 source .venv/bin/activate
 QT_QPA_PLATFORM=offscreen PYTHONPATH=. pytest tests/unit/path/to/test.py -v
 ```
 
-# Tab Runtime Manager
-`TabRuntimeManager` in `qutebrowser/browser/tabruntime.py` exposes live tab state as plain-text files in `{basedir}/runtime/tabs/`. Each tab gets a `{tab_id}/tab-data.info` file with key-value pairs (url, title, index, pinned, load_status, private, audio, window, created_at). An `order` file lists tab_ids in tab-bar order. Instantiated once per `TabbedBrowser` (one line in `tabbedbrowser.py:247`). See `reference/tab-runtime.md` for full signal wiring, field reference, and design decisions.
+## Tab runtime manager
 
-# Critical Workflow Notes
-- **Do NOT run git commands** (commit, push, checkout, etc.) unless explicitly instructed. User manages git manually.
-- **Always install after code changes** so the user can test immediately.
-  - **Python-only changes**: run `./install.sh`
-  - **C++ (Blink/QtWebEngine) changes**: run `./install.sh --dirty`
+`TabRuntimeManager` (in `qutebrowser/browser/tabruntime.py`) exposes live tab state as plain-text files under `{basedir}/runtime/tabs/`. Each tab gets a directory with a `tab-data.info` file containing key-value pairs (url, title, index, pinned, load_status, private, audio, window, created_at), and an `order` file lists tabs in bar order. It's instantiated once per `TabbedBrowser` (line 247 of `tabbedbrowser.py`). See `reference/tab-runtime.md` for the full picture.
+
+## Workflow rules
+
+- **Do NOT run git commands** (commit, push, checkout, etc.) unless explicitly told to. The user manages git manually.
+- **Always install after code changes** — run `./install.sh` for Python-only or `./install.sh --dirty` for C++ changes. Do this automatically without asking; the user expects the install to happen as part of the task.
 
 ---
-Update this memory when qutebrowser's submodule structure, build process, reference docs, or workflow changes.
+Update this memory when the submodule structure, build process, reference docs, or workflow rules change.
 </memory>
