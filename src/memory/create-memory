@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+# create-memory — Create a properly structured memory file from piped content
+# Spawns a subclaude that structures the content with proper XML tags,
+# picks a kebab-case filename, and writes it to memory/.
+# Usage: echo "descriptive content" | create-memory [filename-hint]
+
+set -euo pipefail
+
+AGENT_DIR="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/../.." && pwd)}"
+MEMORY_DIR="${AGENT_DIR}/memory"
+
+# Read content from stdin
+CONTENT=$(cat)
+if [[ -z "$CONTENT" || "$CONTENT" =~ ^[[:space:]]*$ ]]; then
+  echo "Error: no content provided on stdin" >&2
+  echo "Usage: echo 'memory content' | create-memory [filename-hint]" >&2
+  exit 1
+fi
+
+# Optional filename hint
+HINT="${1:-}"
+
+# Snapshot existing files to detect what gets created
+BEFORE=$(ls "$MEMORY_DIR"/*.md 2>/dev/null | sort || true)
+
+# --- System prompt ---
+read -r -d '' SYSTEM_PROMPT <<'SEOF' || true
+You create memory files. You receive raw content and write a single properly structured memory file.
+
+## File format
+
+Write the file with this exact structure (no <memory-metadata> — that is added automatically):
+
+```
+<conditional>
+Recall if the user prompt mentions X, Y, or Z.
+</conditional>
+
+<fuzzy-match>
+keyword1, keyword2, keyword3
+</fuzzy-match>
+
+<memory>
+First line = single-line plaintext retrieval descriptor
+(blank line)
+...actual memory content...
+
+---
+Update this memory when the information above becomes outdated.
+</memory>
+```
+
+## Tag guidelines
+
+**<conditional>**: Write explicit trigger rules — "Recall if the user prompt mentions..." followed by the specific topics, tools, commands, or concepts that should trigger recall of this memory.
+
+**<fuzzy-match>**: Comma-separated keywords matched against user prompts via fuzzy keyword search. Include tool names, command names, config keys, abbreviations, and related terms. These are the primary presearch filter.
+
+**<memory> first line**: A single plaintext line (no markdown) that maximizes retrieval. Front-load key nouns, tools, and concepts. Include synonyms. Be specific (e.g. "st-notify popup notification system — usage, options, wire protocol" not "How notifications work").
+
+## Process
+
+1. Use Glob to check memory/*.md for existing files with similar topics — avoid duplicates.
+2. Choose a kebab-case filename (e.g. `my-topic-name.md`). Use the filename hint if provided.
+3. Lightly clean up the content if needed but do NOT substantially alter meaning.
+4. Write the file to the memory directory using Write. Use absolute paths.
+SEOF
+
+# --- User prompt ---
+USER_PROMPT="Create a memory file from this content."
+if [[ -n "$HINT" ]]; then
+  USER_PROMPT="${USER_PROMPT}
+Filename hint: ${HINT}"
+fi
+USER_PROMPT="${USER_PROMPT}
+Memory directory: ${MEMORY_DIR}
+
+---
+${CONTENT}"
+
+# --- Spawn subclaude ---
+STDERR_LOG=$(mktemp)
+RESULT=$(echo "$USER_PROMPT" | \
+  (cd "$AGENT_DIR" && unset CLAUDECODE && AGENT_HOOK_ID="" BLOCK_HOOK_AGENTS=1 timeout 60 claude -p \
+    --model haiku \
+    --max-turns 3 \
+    --no-session-persistence \
+    --allowedTools "Write,Glob" \
+    --system-prompt "$SYSTEM_PROMPT" \
+    2>"$STDERR_LOG")) || {
+  echo "Error: memory creation agent failed (exit $?)" >&2
+  if [[ -s "$STDERR_LOG" ]]; then
+    cat "$STDERR_LOG" >&2
+  fi
+  rm -f "$STDERR_LOG"
+  exit 1
+}
+rm -f "$STDERR_LOG"
+
+# --- Stamp metadata on new files ---
+SESSION_FILE="${AGENT_DIR}/runtime/session-counter"
+CURRENT_SESSION=$(cat "$SESSION_FILE" 2>/dev/null || echo "0")
+
+AFTER=$(ls "$MEMORY_DIR"/*.md 2>/dev/null | sort || true)
+NEW_FILES=$(comm -13 <(echo "$BEFORE") <(echo "$AFTER"))
+
+if [[ -z "$NEW_FILES" ]]; then
+  echo "Warning: no new memory file was created" >&2
+  echo "$RESULT"
+  exit 1
+fi
+
+while IFS= read -r filepath; do
+  [[ -z "$filepath" ]] && continue
+  python3 -c "
+import sys
+sys.path.insert(0, '${AGENT_DIR}/src')
+from pathlib import Path
+from memory_metadata import ensure_file
+ensure_file(Path('${filepath}'), ${CURRENT_SESSION})
+"
+  filename=$(basename "$filepath")
+  echo "Created memory/${filename}"
+
+  # Notify terminal
+  if [[ -n "${AGENT_TERMINAL_PID:-}" ]] && command -v st-notify &>/dev/null; then
+    st-notify -t 16000 -ts 18 -b "#4ddbb7" -bg "#001a0f" -fg "#f1faee" \
+      "$AGENT_TERMINAL_PID" "Created memory/${filename}" &>/dev/null || true
+  fi
+done <<< "$NEW_FILES"
+
+exit 0
