@@ -1,7 +1,7 @@
 <memory-metadata>
 {
-  "frequency": 22,
-  "last_accessed_session": 0,
+  "frequency": 23,
+  "last_accessed_session": 576,
   "created_session": 0,
   "appreciation": 0,
   "pinned": false
@@ -17,18 +17,14 @@ ASCII art, block letters, splash screen, CLI banner, terminal branding, startup 
 </fuzzy-match>
 
 <memory>
-The user prefers bold, high-impact terminal aesthetics with large ASCII art, vertical color gradients, and strong visual branding across CLI tools and scripts.
+The user cares about how terminal output looks. When a script, CLI tool, or startup sequence prints to the terminal, it should have visual presence — not just be functional text.
 
-## Principles
-- **Bold over minimal**: Prefer big, impactful ASCII art over small one-liners.
-- **Multi-line presence**: Banners and branding should feel significant and take up space.
-- **Gradients**: Use vertical color gradients from the ocean palette (see `user-terminal-color-scheme.md`).
-- **Branding matters**: Tools should have a visual identity, not just functional output.
+The style leans bold, not minimal. Big ASCII art banners are preferred over small one-liners. Branding elements should take up space and feel intentional, like a title screen. Color comes from vertical gradients using the ocean palette (see `user-terminal-color-scheme.md` for the specific colors).
 
-## Approved Examples
+Every tool or script that has a name should have a visual identity — a banner, a header, something that gives it character.
 
-### AGENT startup banner
-6-line block letters with a vertical gradient (lagoon aqua → aqua splash → seafoam teal):
+## Reference: AGENT startup banner
+This is the approved banner style. Six-line block letters with a vertical gradient from lagoon aqua through aqua splash to seafoam teal:
 ```
  █████╗  ██████╗ ███████╗███╗   ██╗████████╗
 ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝
@@ -38,12 +34,5 @@ The user prefers bold, high-impact terminal aesthetics with large ASCII art, ver
 ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝
 ```
 
-## When This Applies
-- Script banners and splash screens
-- CLI tool branding
-- Startup messages
-- Any "make it look nice" request for terminal output
-
----
-Update this memory when the information above becomes outdated.
+This applies whenever building script banners, splash screens, CLI branding, startup messages, or anything where the user asks to "make it look nice."
 </memory>

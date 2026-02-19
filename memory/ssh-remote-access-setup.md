@@ -1,7 +1,7 @@
 <memory-metadata>
 {
-  "frequency": 4,
-  "last_accessed_session": 0,
+  "frequency": 5,
+  "last_accessed_session": 588,
   "created_session": 406,
   "appreciation": 0,
   "pinned": false

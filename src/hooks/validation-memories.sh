@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # validation-memories.sh — SessionStart hook (async) / manual via --force
-# At schedule 75/100 (session % 100 == 75), selects up to 20 random memories,
-# validates their content via subagents, then updates their descriptors.
+# At schedule 75/100 (session % 100 == 75), selects up to 20 random memories
+# and validates their content against the actual source of truth.
 # Usage: validation-memories.sh [--force [count]]
 
 set -euo pipefail
@@ -157,9 +157,8 @@ deleting the reference
 Rules:
 - Be thorough — read every referenced file, run every checkable command
 - Do NOT make cosmetic changes, reformat, or reorganize — only fix factual inaccuracies
-- Do NOT change the first line inside <memory> (description) unless it is factually wrong
+- Do NOT modify <memory-metadata>, <conditional>, or <fuzzy-match> tags — those are managed by the pipeline
 - Do NOT change the footer
-- Do NOT modify <memory-metadata> tags
 - If the entire memory is accurate, move on without editing it
 - Log which memories you checked and what (if anything) you changed, as a summary at the end
 \`\`\`
@@ -179,52 +178,6 @@ if [[ -s "${STDERR_LOG:-}" ]]; then
 fi
 rm -f "$STDERR_LOG"
 log "Content validation done (output in $VLOG)"
-
-# --- Agent 2: Descriptor update ---
-log "Spawning descriptor update agent..."
-
-read -r -d '' DESCRIPTOR_PROMPT << DPROMPT || true
-Go through every file in here:
-\`\`\`md
-${FILE_LIST}
-\`\`\`
-
-And update the first line inside the <memory> tag of each to maximize retrieval by the recall agent.
-
-Context: The recall system generates pointers by reading ONLY the first line of each memory file. These pointers are shown to an opus subclaude that decides which memories are relevant to the user's prompt. The first line is the ONLY signal it has — it never sees the rest of the file.
-
-Rules:
-- The first line inside <memory> must be a single line (no line breaks) of plaintext — no markdown, no # headers
-- Do NOT modify <memory-metadata> tags at the top of the file
-- Front-load key nouns, tools, technologies, and concepts
-- Include synonyms and alternate phrasings a user might use when asking about this topic
-- Be specific, not generic (e.g. "dwm window manager — tiling, tags, keybindings, config.h,
-patching suckless" not "Window manager notes")
-- Mention the tool/system name AND what it does AND key subtopics
-- Read the full content of each memory before writing its description — the description should
-cover all major topics in the file
-- Do NOT change anything else in the file — only the first line inside <memory>
-
-Process:
-1. Read each memory file
-2. Draft a better first line based on the full content
-3. Edit only the first line
-4. Move to the next file
-DPROMPT
-
-STDERR_LOG=$(mktemp)
-echo "$DESCRIPTOR_PROMPT" | \
-  (cd /tmp && AGENT_HOOK_ID="" BLOCK_HOOK_AGENTS=1 claude -p \
-    --model opus \
-    --dangerously-skip-permissions \
-    --no-session-persistence \
-    2>"$STDERR_LOG") >> "$VLOG" || { log "Descriptor update agent failed (exit $?)"; log "stderr: $(cat "$STDERR_LOG")"; rm -f "$STDERR_LOG"; }
-
-if [[ -s "${STDERR_LOG:-}" ]]; then
-  log "descriptor stderr: $(cat "$STDERR_LOG")"
-fi
-rm -f "$STDERR_LOG"
-log "Descriptor update done (output in $VLOG)"
 
 # --- End notification ---
 if [[ -n "$NOTIFY_PID" ]] && command -v st-notify &>/dev/null; then

@@ -73,17 +73,20 @@ fi
 touch "runtime/recalled-${AGENT_HOOK_ID}" "runtime/hook-${AGENT_HOOK_ID}.log"
 echo "$AGENT_START_PID" > "runtime/agent-${AGENT_HOOK_ID}.pid"
 
-# Parse --resume flag (forwarded to claude)
+# Parse flags (forwarded to claude); collect positional args as the prompt
 CLAUDE_ARGS=(--dangerously-skip-permissions)
+PROMPT_ARGS=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --resume)
       [[ -n "${2:-}" ]] && CLAUDE_ARGS+=(--resume "$2") && shift 2 || { echo "--resume requires a session ID" >&2; exit 1; }
       ;;
     *)
+      PROMPT_ARGS+=("$1")
       shift
       ;;
   esac
 done
+[[ ${#PROMPT_ARGS[@]} -gt 0 ]] && CLAUDE_ARGS+=("${PROMPT_ARGS[*]}")
 
 PATH="${AGENT_DIR}/src/memory:$PATH" claude "${CLAUDE_ARGS[@]}"
